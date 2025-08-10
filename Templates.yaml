@@ -1,0 +1,1610 @@
+# POCM Templates Service API
+# 
+# This service manages communication templates for our e-commerce platform.
+# Templates power transactional emails, SMS notifications, push messages, 
+# and in-app content across the customer journey.
+#
+# INTEGRATION OPTIONS FOR TEMPLATE DELIVERY:
+#
+# Transactional Email Services:
+# - Postmark: Premium deliverability with detailed analytics, great for order confirmations
+# - Amazon SES: Most cost-effective at scale, requires custom bounce handling
+# - SendGrid: Strong template editor and A/B testing features
+# - Mailgun: Excellent API design with powerful routing rules
+# - Mailtrap: Perfect for testing email templates before production
+#
+# Multi-channel Marketing Automation:
+# - Omnisend: Built for e-commerce with cart abandonment flows and SMS integration
+# - Klaviyo: Advanced segmentation and personalization for product recommendations  
+# - Brevo: Good balance of features and pricing with WhatsApp support
+# All three offer visual template builders and direct Shopify/WooCommerce connectors
+#
+# SMS and Messaging APIs:
+# - Twilio: Industry standard with global reach and compliance tools
+# - MessageBird: Strong in European markets with omnichannel capabilities
+# - Sinch: Competitive pricing for high-volume SMS with good Indian coverage
+# - WhatsApp Business API: Essential for customer support templates
+#
+# Push and In-App Messaging:
+# - MoEngage: Excellent template library with behavioral triggers
+# - Blueshift: Visual in-app message builder with real-time personalization
+# - Firebase Cloud Messaging: Free option for basic push notifications
+#
+# Self-Hosted Solutions:
+# - Notifo: Open source notification server with MJML email templates
+# - Postal: Self-hosted email server for complete control over delivery
+# - ntfy: Simple push notification server for internal alerts
+#
+# RECOMMENDED INTEGRATION PATTERNS:
+#
+# For Order Lifecycle:
+# 1. Order placed → render email template → send via Postmark for reliability
+# 2. Payment confirmed → render SMS template → send via Twilio for speed
+# 3. Item shipped → render push notification → send via MoEngage with tracking link
+#
+# For Marketing Campaigns:
+# 1. Cart abandoned → trigger Omnisend flow with personalized product images
+# 2. Browse abandonment → render email with viewed products via Klaviyo
+# 3. Win-back campaigns → multi-channel sequence via Brevo automation
+#
+# For Customer Support:
+# 1. Ticket created → render WhatsApp template via MessageBird API
+# 2. Issue resolved → render satisfaction survey via in-app message
+# 3. Refund processed → render confirmation email with next steps
+#
+# TEMPLATE RENDERING APPROACH:
+# - Use Liquid templating for dynamic content (Shopify compatible)
+# - MJML for responsive email layouts that work across all clients
+# - Handlebars for SMS and push templates with fallback text
+# - React components for in-app templates with live preview
+
+openapi: 3.0.3
+info:
+  title: POCM Templates Service API
+  version: 2.0.0
+  description: |
+    Template management service for POCM e-commerce platform.
+    Handles creation, rendering, and delivery of communication templates across
+    email, SMS, push notifications, and in-app messaging channels.
+    
+    **Template Engine**: Will support Liquid, MJML, and Handlebars syntax
+    **Localization**: Multi-language template support with fallbacks
+    **Personalization**: Dynamic content rendering with customer data
+  contact:
+    name: POCM Templates side
+    email: akshat.sinha@pointofcaremicrofluidics.com
+  license:
+    name: Proprietary
+    url: #to_be_featured_later_once_created
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Templates
+    description: Template CRUD operations
+  - name: Rendering
+    description: Template rendering and preview
+  - name: Delivery
+    description: Template delivery and tracking
+  - name: Analytics
+    description: Template performance metrics
+  - name: Health
+    description: Service health checks
+
+paths:
+  /templates:
+    get:
+      tags: [Templates]
+      summary: List templates with filtering
+      description: |
+        Retrieve templates with advanced filtering options.
+        Supports pagination, search, and multi-criteria filtering.
+      parameters:
+        - name: type
+          in: query
+          description: Filter by template type
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/TemplateType'
+          style: form
+          explode: false
+        - name: category
+          in: query
+          description: Filter by business category
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/TemplateCategory'
+          style: form
+          explode: false
+        - name: language
+          in: query
+          description: Filter by language code
+          schema:
+            type: string
+            pattern: '^[a-z]{2}(-[A-Z]{2})?$'
+            example: "en-IN"
+        - name: status
+          in: query
+          description: Filter by template status
+          schema:
+            type: string
+            enum: [draft, active, archived, testing]
+            default: active
+        - name: search
+          in: query
+          description: Search in template name and content
+          schema:
+            type: string
+            maxLength: 100
+        - name: tags
+          in: query
+          description: Filter by tags
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: false
+        - name: limit
+          in: query
+          description: Number of templates to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: Number of templates to skip
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: sort
+          in: query
+          description: Sort order
+          schema:
+            type: string
+            enum: [name_asc, name_desc, created_desc, updated_desc, usage_desc]
+            default: updated_desc
+      responses:
+        '200':
+          description: Templates retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateListResponse'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags: [Templates]
+      summary: Create new template
+      description: |
+        Create a new template with validation and optional preview generation.
+        Supports MJML for emails, Liquid for dynamic content, and Handlebars for SMS.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTemplateRequest'
+            examples:
+              email_template:
+                summary: Order Confirmation Email
+                value:
+                  name: "Order Confirmation - Premium"
+                  type: "email"
+                  category: "transactional"
+                  language: "en-IN"
+                  subject: "Your POCM order {{order_id}} is confirmed!"
+                  content: |
+                    <mjml>
+                      <mj-body>
+                        <mj-section>
+                          <mj-column>
+                            <mj-text>
+                              <h2>Thank you {{customer_name}}!</h2>
+                              <p>Your order {{order_id}} for ₹{{total_amount}} has been confirmed.</p>
+                              <p>Estimated delivery: {{delivery_date}}</p>
+                            </mj-text>
+                          </mj-column>
+                        </mj-section>
+                      </mj-body>
+                    </mjml>
+                  variables:
+                    - name: "customer_name"
+                      type: "string"
+                      required: true
+                      description: "Customer's full name"
+                    - name: "order_id"
+                      type: "string"
+                      required: true
+                      description: "Order identifier"
+                    - name: "total_amount"
+                      type: "number"
+                      required: true
+                      description: "Order total in INR"
+                  tags: ["order", "confirmation", "transactional"]
+              sms_template:
+                summary: Delivery Update SMS
+                value:
+                  name: "Delivery Update - Out for Delivery"
+                  type: "sms"
+                  category: "logistics"
+                  language: "en-IN"
+                  content: "Hi {{customer_name}}, your POCM order {{order_id}} is out for delivery! Track: {{tracking_url}}"
+                  variables:
+                    - name: "customer_name"
+                      type: "string"
+                      required: true
+                    - name: "order_id"
+                      type: "string"
+                      required: true
+                    - name: "tracking_url"
+                      type: "string"
+                      required: true
+                  tags: ["delivery", "logistics", "tracking"]
+      responses:
+        '201':
+          description: Template created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+        '400':
+          description: Invalid template data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Template name already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /templates/{id}:
+    get:
+      tags: [Templates]
+      summary: Get template by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Template identifier
+          schema:
+            type: string
+            pattern: '^[a-zA-Z0-9_-]+$'
+      responses:
+        '200':
+          description: Template found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+        '404':
+          description: Template not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags: [Templates]
+      summary: Update template
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Template identifier
+          schema:
+            type: string
+            pattern: '^[a-zA-Z0-9_-]+$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTemplateRequest'
+      responses:
+        '200':
+          description: Template updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+        '404':
+          description: Template not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Template name conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags: [Templates]
+      summary: Delete template
+      description: |
+        Soft delete a template. Templates used in active campaigns cannot be deleted.
+        Use archive status instead for templates that should not be used for new campaigns.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Template identifier
+          schema:
+            type: string
+            pattern: '^[a-zA-Z0-9_-]+$'
+        - name: force
+          in: query
+          description: Force delete even if template is in use
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '204':
+          description: Template deleted successfully
+        '404':
+          description: Template not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Template is in use and cannot be deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /templates/{id}/render:
+    post:
+      tags: [Rendering]
+      summary: Render template with data
+      description: |
+        Render a template with provided variables and return the final content.
+        Supports preview mode for testing without sending actual messages.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Template identifier
+          schema:
+            type: string
+            pattern: '^[a-zA-Z0-9_-]+$'
+        - name: preview
+          in: query
+          description: Enable preview mode with sample data
+          schema:
+            type: boolean
+            default: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenderRequest'
+            examples:
+              order_confirmation:
+                summary: Order Confirmation Data
+                value:
+                  variables:
+                    customer_name: "Rajesh Kumar"
+                    order_id: "POCM-2025-001234"
+                    total_amount: 2499.00
+                    delivery_date: "2025-08-15"
+                    items:
+                      - name: "Microfluidic Chip - Blood Analysis"
+                        quantity: 2
+                        price: 1249.50
+                  personalization:
+                    user_id: "user_12345"
+                    segment: "premium_customer"
+                    location: "Mumbai"
+                  options:
+                    format: "html"
+                    include_tracking: true
+      responses:
+        '200':
+          description: Template rendered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RenderResponse'
+              examples:
+                rendered_email:
+                  value:
+                    rendered_content: |
+                      <html>
+                        <body>
+                          <h2>Thank you Rajesh Kumar!</h2>
+                          <p>Your order POCM-2025-001234 for ₹2499.00 has been confirmed.</p>
+                          <p>Estimated delivery: 2025-08-15</p>
+                        </body>
+                      </html>
+                    rendered_subject: "Your POCM order POCM-2025-001234 is confirmed!"
+                    metadata:
+                      render_time_ms: 45
+                      template_version: "v1.2"
+                      variables_used: ["customer_name", "order_id", "total_amount"]
+        '400':
+          description: Invalid render request or missing variables
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Template not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /templates/{id}/send:
+    post:
+      tags: [Delivery]
+      summary: Render and send template
+      description: |
+        Render template with data and send via configured delivery channels.
+        Supports immediate sending or scheduled delivery.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Template identifier
+          schema:
+            type: string
+            pattern: '^[a-zA-Z0-9_-]+$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendRequest'
+            examples:
+              send_email:
+                summary: Send Order Confirmation Email
+                value:
+                  recipient:
+                    email: "rajesh.kumar@example.com"
+                    name: "Rajesh Kumar"
+                    user_id: "user_12345"
+                  variables:
+                    customer_name: "Rajesh Kumar"
+                    order_id: "POCM-2025-001234"
+                    total_amount: 2499.00
+                    delivery_date: "2025-08-15"
+                  delivery_options:
+                    provider: "postmark"
+                    priority: "high"
+                    track_opens: true
+                    track_clicks: true
+                  metadata:
+                    campaign_id: "order_confirmation_v2"
+                    source: "checkout_service"
+              send_sms:
+                summary: Send Delivery Update SMS
+                value:
+                  recipient:
+                    phone: "+919876543210"
+                    name: "Rajesh Kumar"
+                    user_id: "user_12345"
+                  variables:
+                    customer_name: "Rajesh"
+                    order_id: "POCM-2025-001234"
+                    tracking_url: "https://track.pocm.com/POCM-2025-001234"
+                  delivery_options:
+                    provider: "twilio"
+                    priority: "normal"
+      responses:
+        '202':
+          description: Message queued for delivery
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendResponse'
+        '400':
+          description: Invalid send request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Template not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /templates/{id}/variants:
+    get:
+      tags: [Templates]
+      summary: Get template variants for A/B testing
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Template identifier
+          schema:
+            type: string
+            pattern: '^[a-zA-Z0-9_-]+$'
+      responses:
+        '200':
+          description: Template variants retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TemplateVariant'
+
+    post:
+      tags: [Templates]
+      summary: Create template variant
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Template identifier
+          schema:
+            type: string
+            pattern: '^[a-zA-Z0-9_-]+$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVariantRequest'
+      responses:
+        '201':
+          description: Variant created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateVariant'
+
+  /templates/analytics:
+    get:
+      tags: [Analytics]
+      summary: Get template performance analytics
+      description: |
+        Retrieve performance metrics for templates including delivery rates,
+        open rates, click rates, and conversion tracking.
+      parameters:
+        - name: template_ids
+          in: query
+          description: Filter by specific template IDs
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: false
+        - name: date_from
+          in: query
+          description: Start date for analytics period
+          schema:
+            type: string
+            format: date
+            example: "2025-08-01"
+        - name: date_to
+          in: query
+          description: End date for analytics period
+          schema:
+            type: string
+            format: date
+            example: "2025-08-10"
+        - name: group_by
+          in: query
+          description: Group results by dimension
+          schema:
+            type: string
+            enum: [template, category, type, day, week, month]
+            default: template
+      responses:
+        '200':
+          description: Analytics data retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsResponse'
+
+  /delivery/status/{message_id}:
+    get:
+      tags: [Delivery]
+      summary: Get message delivery status
+      parameters:
+        - name: message_id
+          in: path
+          required: true
+          description: Message identifier from send response
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Delivery status retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeliveryStatus'
+
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      description: Basic health check for load balancers
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  timestamp:
+                    type: string
+                    format: date-time
+                  version:
+                    type: string
+                    example: "2.0.0"
+
+  /ready:
+    get:
+      tags: [Health]
+      summary: Readiness check
+      description: Readiness check for Kubernetes probes
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ready"
+                  dependencies:
+                    type: object
+                    properties:
+                      database:
+                        type: string
+                        example: "connected"
+                      template_engine:
+                        type: string
+                        example: "ready"
+                      delivery_providers:
+                        type: object
+                        properties:
+                          postmark:
+                            type: string
+                            example: "connected"
+                          twilio:
+                            type: string
+                            example: "connected"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for service authentication
+
+  schemas:
+    TemplateType:
+      type: string
+      enum: [email, sms, push, whatsapp, in_app, webhook]
+      description: |
+        Template delivery channel types:
+        - email: HTML/text emails via SMTP or API
+        - sms: Text messages via SMS gateways
+        - push: Mobile push notifications
+        - whatsapp: WhatsApp Business messages
+        - in_app: In-application notifications
+        - webhook: HTTP callbacks with template data
+
+    TemplateCategory:
+      type: string
+      enum: [transactional, marketing, support, system, lifecycle, promotional]
+      description: |
+        Business categories for template organization:
+        - transactional: Order confirmations, receipts, shipping updates
+        - marketing: Newsletters, product recommendations, campaigns
+        - support: Help desk responses, ticket updates, surveys
+        - system: Password resets, account verification, alerts
+        - lifecycle: Welcome series, onboarding, retention
+        - promotional: Sales announcements, discount codes, events
+
+    TemplateVariable:
+      type: object
+      required: [name, type, required]
+      properties:
+        name:
+          type: string
+          pattern: '^[a-zA-Z][a-zA-Z0-9_]*$'
+          description: Variable name for template substitution
+          example: "customer_name"
+        type:
+          type: string
+          enum: [string, number, boolean, date, array, object]
+          description: Expected data type for validation
+        required:
+          type: boolean
+          description: Whether this variable must be provided
+          example: true
+        description:
+          type: string
+          maxLength: 200
+          description: Human-readable description of the variable
+          example: "Customer's full name for personalization"
+        default_value:
+          description: Default value if not provided (for optional variables)
+          example: "Valued Customer"
+        validation:
+          type: object
+          description: Additional validation rules
+          properties:
+            min_length:
+              type: integer
+              minimum: 0
+            max_length:
+              type: integer
+              minimum: 1
+            pattern:
+              type: string
+              description: Regex pattern for string validation
+            min_value:
+              type: number
+              description: Minimum value for numbers
+            max_value:
+              type: number
+              description: Maximum value for numbers
+
+    Template:
+      type: object
+      required: [id, name, type, category, content, status, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          pattern: '^[a-zA-Z0-9_-]+$'
+          description: Unique template identifier
+          example: "order_confirmation_premium_v2"
+        name:
+          type: string
+          minLength: 3
+          maxLength: 100
+          description: Human-readable template name
+          example: "Order Confirmation - Premium"
+        type:
+          $ref: '#/components/schemas/TemplateType'
+        category:
+          $ref: '#/components/schemas/TemplateCategory'
+        language:
+          type: string
+          pattern: '^[a-z]{2}(-[A-Z]{2})?$'
+          description: Language code (ISO 639-1 with optional country)
+          example: "en-IN"
+        subject:
+          type: string
+          maxLength: 200
+          description: Email subject line or SMS/push title
+          example: "Your POCM order {{order_id}} is confirmed!"
+        content:
+          type: string
+          maxLength: 50000
+          description: Template content with variable placeholders
+          example: |
+            <mjml>
+              <mj-body>
+                <mj-section>
+                  <mj-column>
+                    <mj-text>
+                      <h2>Thank you {{customer_name}}!</h2>
+                      <p>Your order {{order_id}} for ₹{{total_amount}} has been confirmed.</p>
+                    </mj-text>
+                  </mj-column>
+                </mj-section>
+              </mj-body>
+            </mjml>
+        variables:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplateVariable'
+          description: List of variables used in the template
+        tags:
+          type: array
+          items:
+            type: string
+            pattern: '^[a-zA-Z0-9_-]+$'
+          maxItems: 10
+          description: Tags for template organization and search
+          example: ["order", "confirmation", "transactional", "premium"]
+        status:
+          type: string
+          enum: [draft, active, archived, testing]
+          description: Template lifecycle status
+          example: "active"
+        version:
+          type: string
+          pattern: '^v\d+\.\d+$'
+          description: Template version for change tracking
+          example: "v1.2"
+        delivery_config:
+          type: object
+          description: Channel-specific delivery configuration
+          properties:
+            provider:
+              type: string
+              enum: [postmark, sendgrid, ses, twilio, messagebird, firebase]
+              description: Preferred delivery provider
+            priority:
+              type: string
+              enum: [low, normal, high, urgent]
+              default: normal
+            retry_policy:
+              type: object
+              properties:
+                max_attempts:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                  default: 3
+                backoff_seconds:
+                  type: integer
+                  minimum: 1
+                  maximum: 3600
+                  default: 60
+        analytics:
+          type: object
+          readOnly: true
+          description: Template performance metrics
+          properties:
+            total_sent:
+              type: integer
+              minimum: 0
+              description: Total messages sent using this template
+            delivery_rate:
+              type: number
+              format: double
+              minimum: 0
+              maximum: 1
+              description: Successful delivery rate
+            open_rate:
+              type: number
+              format: double
+              minimum: 0
+              maximum: 1
+              description: Email open rate (email templates only)
+            click_rate:
+              type: number
+              format: double
+              minimum: 0
+              maximum: 1
+              description: Click-through rate
+            conversion_rate:
+              type: number
+              format: double
+              minimum: 0
+              maximum: 1
+              description: Conversion rate to desired action
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Template creation timestamp
+          example: "2025-08-10T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Last modification timestamp
+          example: "2025-08-10T15:45:00Z"
+        created_by:
+          type: string
+          readOnly: true
+          description: User who created the template
+          example: "marketing_team"
+        updated_by:
+          type: string
+          readOnly: true
+          description: User who last modified the template
+          example: "content_manager"
+
+    CreateTemplateRequest:
+      type: object
+      required: [name, type, category, content]
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 100
+          description: Human-readable template name
+          example: "Order Confirmation - Premium"
+        type:
+          $ref: '#/components/schemas/TemplateType'
+        category:
+          $ref: '#/components/schemas/TemplateCategory'
+        language:
+          type: string
+          pattern: '^[a-z]{2}(-[A-Z]{2})?$'
+          default: "en-IN"
+          description: Language code
+          example: "en-IN"
+        subject:
+          type: string
+          maxLength: 200
+          description: Email subject or message title
+          example: "Your POCM order {{order_id}} is confirmed!"
+        content:
+          type: string
+          maxLength: 50000
+          description: Template content with variable placeholders
+        variables:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplateVariable'
+          description: Variables used in the template
+        tags:
+          type: array
+          items:
+            type: string
+            pattern: '^[a-zA-Z0-9_-]+$'
+          maxItems: 10
+          description: Tags for organization
+          example: ["order", "confirmation", "transactional"]
+        delivery_config:
+          type: object
+          description: Delivery configuration
+          properties:
+            provider:
+              type: string
+              enum: [postmark, sendgrid, ses, twilio, messagebird, firebase]
+            priority:
+              type: string
+              enum: [low, normal, high, urgent]
+              default: normal
+
+    UpdateTemplateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 100
+        subject:
+          type: string
+          maxLength: 200
+        content:
+          type: string
+          maxLength: 50000
+        variables:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplateVariable'
+        tags:
+          type: array
+          items:
+            type: string
+            pattern: '^[a-zA-Z0-9_-]+$'
+          maxItems: 10
+        status:
+          type: string
+          enum: [draft, active, archived, testing]
+        delivery_config:
+          type: object
+          properties:
+            provider:
+              type: string
+              enum: [postmark, sendgrid, ses, twilio, messagebird, firebase]
+            priority:
+              type: string
+              enum: [low, normal, high, urgent]
+
+    TemplateListResponse:
+      type: object
+      required: [templates, total, limit, offset]
+      properties:
+        templates:
+          type: array
+          items:
+            $ref: '#/components/schemas/Template'
+        total:
+          type: integer
+          minimum: 0
+          description: Total number of templates matching filters
+          example: 45
+        limit:
+          type: integer
+          minimum: 1
+          description: Number of templates returned
+          example: 20
+        offset:
+          type: integer
+          minimum: 0
+          description: Number of templates skipped
+          example: 0
+        has_more:
+          type: boolean
+          description: Whether more templates are available
+          example: true
+
+    RenderRequest:
+      type: object
+      required: [variables]
+      properties:
+        variables:
+          type: object
+          description: Key-value pairs for template variable substitution
+          example:
+            customer_name: "Rajesh Kumar"
+            order_id: "POCM-2025-001234"
+            total_amount: 2499.00
+        personalization:
+          type: object
+          description: Additional personalization data
+          properties:
+            user_id:
+              type: string
+              description: User identifier for personalized content
+            segment:
+              type: string
+              description: Customer segment for targeted messaging
+            location:
+              type: string
+              description: User location for localized content
+            preferences:
+              type: object
+              description: User preferences for content customization
+        options:
+          type: object
+          description: Rendering options
+          properties:
+            format:
+              type: string
+              enum: [html, text, json]
+              default: html
+              description: Output format for rendered content
+            include_tracking:
+              type: boolean
+              default: true
+              description: Include tracking pixels and links
+            validate_variables:
+              type: boolean
+              default: true
+              description: Validate all required variables are provided
+
+    RenderResponse:
+      type: object
+      required: [rendered_content]
+      properties:
+        rendered_content:
+          type: string
+          description: Final rendered template content
+          example: |
+            <html>
+              <body>
+                <h2>Thank you Rajesh Kumar!</h2>
+                <p>Your order POCM-2025-001234 for ₹2499.00 has been confirmed.</p>
+              </body>
+            </html>
+        rendered_subject:
+          type: string
+          description: Rendered subject line (for email templates)
+          example: "Your POCM order POCM-2025-001234 is confirmed!"
+        metadata:
+          type: object
+          description: Rendering metadata
+          properties:
+            render_time_ms:
+              type: integer
+              description: Time taken to render template in milliseconds
+              example: 45
+            template_version:
+              type: string
+              description: Version of template used for rendering
+              example: "v1.2"
+            variables_used:
+              type: array
+              items:
+                type: string
+              description: List of variables that were substituted
+              example: ["customer_name", "order_id", "total_amount"]
+            warnings:
+              type: array
+              items:
+                type: string
+              description: Non-fatal warnings during rendering
+              example: ["Variable 'optional_field' not provided, using default"]
+
+    SendRequest:
+      type: object
+      required: [recipient, variables]
+      properties:
+        recipient:
+          type: object
+          required: [email]
+          properties:
+            email:
+              type: string
+              format: email
+              description: Recipient email address
+              example: "rajesh.kumar@example.com"
+            phone:
+              type: string
+              pattern: '^\+[1-9]\d{1,14}$'
+              description: Recipient phone number (E.164 format)
+              example: "+919876543210"
+            name:
+              type: string
+              maxLength: 100
+              description: Recipient display name
+              example: "Rajesh Kumar"
+            user_id:
+              type: string
+              description: Internal user identifier
+              example: "user_12345"
+        variables:
+          type: object
+          description: Template variables for rendering
+          example:
+            customer_name: "Rajesh Kumar"
+            order_id: "POCM-2025-001234"
+            total_amount: 2499.00
+        delivery_options:
+          type: object
+          description: Delivery-specific options
+          properties:
+            provider:
+              type: string
+              enum: [postmark, sendgrid, ses, twilio, messagebird, firebase]
+              description: Override default delivery provider
+            priority:
+              type: string
+              enum: [low, normal, high, urgent]
+              default: normal
+              description: Message priority level
+            scheduled_at:
+              type: string
+              format: date-time
+              description: Schedule message for future delivery
+              example: "2025-08-11T09:00:00Z"
+            track_opens:
+              type: boolean
+              default: true
+              description: Enable open tracking (email only)
+            track_clicks:
+              type: boolean
+              default: true
+              description: Enable click tracking
+            custom_headers:
+              type: object
+              description: Custom headers for email delivery
+              example:
+                X-Campaign-ID: "summer_sale_2025"
+        metadata:
+          type: object
+          description: Additional metadata for tracking
+          properties:
+            campaign_id:
+              type: string
+              description: Marketing campaign identifier
+              example: "order_confirmation_v2"
+            source:
+              type: string
+              description: Source service or system
+              example: "checkout_service"
+            correlation_id:
+              type: string
+              description: Request correlation identifier
+              example: "req_abc123def456"
+
+    SendResponse:
+      type: object
+      required: [message_id, status, queued_at]
+      properties:
+        message_id:
+          type: string
+          description: Unique message identifier for tracking
+          example: "msg_1234567890abcdef"
+        status:
+          type: string
+          enum: [queued, sent, failed]
+          description: Initial delivery status
+          example: "queued"
+        queued_at:
+          type: string
+          format: date-time
+          description: When message was queued for delivery
+          example: "2025-08-10T18:45:01Z"
+        estimated_delivery:
+          type: string
+          format: date-time
+          description: Estimated delivery time
+          example: "2025-08-10T18:45:05Z"
+        provider:
+          type: string
+          description: Delivery provider used
+          example: "postmark"
+        tracking_url:
+          type: string
+          format: uri
+          description: URL to track message delivery status
+          example: "https://templates.pocm.com/track/msg_1234567890abcdef"
+
+    TemplateVariant:
+      type: object
+      required: [id, name, weight, content]
+      properties:
+        id:
+          type: string
+          description: Variant identifier
+          example: "variant_b"
+        name:
+          type: string
+          description: Variant name for identification
+          example: "Higher Urgency Version"
+        weight:
+          type: integer
+          minimum: 1
+          maximum: 100
+          description: Traffic percentage for A/B testing
+          example: 50
+        subject:
+          type: string
+          description: Variant subject line
+          example: "URGENT: Complete your POCM order {{order_id}} now!"
+        content:
+          type: string
+          description: Variant template content
+        status:
+          type: string
+          enum: [draft, testing, active, paused]
+          description: Variant status
+          example: "testing"
+        performance:
+          type: object
+          readOnly: true
+          description: A/B test performance metrics
+          properties:
+            impressions:
+              type: integer
+              minimum: 0
+            conversions:
+              type: integer
+              minimum: 0
+            conversion_rate:
+              type: number
+              format: double
+              minimum: 0
+              maximum: 1
+            confidence_level:
+              type: number
+              format: double
+              minimum: 0
+              maximum: 1
+              description: Statistical confidence in results
+
+    CreateVariantRequest:
+      type: object
+      required: [name, weight, content]
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 100
+          description: Variant name
+        weight:
+          type: integer
+          minimum: 1
+          maximum: 100
+          description: Traffic percentage
+        subject:
+          type: string
+          maxLength: 200
+          description: Variant subject line
+        content:
+          type: string
+          maxLength: 50000
+          description: Variant content
+
+    DeliveryStatus:
+      type: object
+      required: [message_id, status, created_at]
+      properties:
+        message_id:
+          type: string
+          description: Message identifier
+          example: "msg_1234567890abcdef"
+        status:
+          type: string
+          enum: [queued, sent, delivered, opened, clicked, bounced, failed, complained]
+          description: Current delivery status
+          example: "delivered"
+        created_at:
+          type: string
+          format: date-time
+          description: Message creation time
+          example: "2025-08-10T18:45:01Z"
+        sent_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When message was sent
+          example: "2025-08-10T18:45:03Z"
+        delivered_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When message was delivered
+          example: "2025-08-10T18:45:05Z"
+        opened_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When message was first opened
+          example: "2025-08-10T19:15:22Z"
+        clicked_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When first link was clicked
+          example: "2025-08-10T19:16:45Z"
+        provider:
+          type: string
+          description: Delivery provider used
+          example: "postmark"
+        provider_message_id:
+          type: string
+          description: Provider-specific message ID
+          example: "pm_msg_abc123"
+        error_message:
+          type: string
+          nullable: true
+          description: Error message if delivery failed
+          example: "Recipient email address does not exist"
+        bounce_reason:
+          type: string
+          nullable: true
+          description: Bounce reason if applicable
+          example: "mailbox_full"
+        events:
+          type: array
+          items:
+            type: object
+            properties:
+              event:
+                type: string
+                enum: [queued, sent, delivered, opened, clicked, bounced, failed, complained]
+              timestamp:
+                type: string
+                format: date-time
+              details:
+                type: object
+                description: Event-specific details
+          description: Chronological list of delivery events
+
+    AnalyticsResponse:
+      type: object
+      required: [period, metrics]
+      properties:
+        period:
+          type: object
+          required: [from, to]
+          properties:
+            from:
+              type: string
+              format: date
+              description: Analytics period start date
+              example: "2025-08-01"
+            to:
+              type: string
+              format: date
+              description: Analytics period end date
+              example: "2025-08-10"
+        metrics:
+          type: array
+          items:
+            type: object
+            required: [template_id, template_name, stats]
+            properties:
+              template_id:
+                type: string
+                description: Template identifier
+                example: "order_confirmation_premium_v2"
+              template_name:
+                type: string
+                description: Template display name
+                example: "Order Confirmation - Premium"
+              template_type:
+                $ref: '#/components/schemas/TemplateType'
+              template_category:
+                $ref: '#/components/schemas/TemplateCategory'
+              stats:
+                type: object
+                required: [total_sent, delivery_rate]
+                properties:
+                  total_sent:
+                    type: integer
+                    minimum: 0
+                    description: Total messages sent
+                    example: 1250
+                  delivered:
+                    type: integer
+                    minimum: 0
+                    description: Successfully delivered messages
+                    example: 1235
+                  delivery_rate:
+                    type: number
+                    format: double
+                    minimum: 0
+                    maximum: 1
+                    description: Delivery success rate
+                    example: 0.988
+                  opened:
+                    type: integer
+                    minimum: 0
+                    description: Messages opened (email only)
+                    example: 892
+                  open_rate:
+                    type: number
+                    format: double
+                    minimum: 0
+                    maximum: 1
+                    description: Open rate (email only)
+                    example: 0.722
+                  clicked:
+                    type: integer
+                    minimum: 0
+                    description: Messages with clicks
+                    example: 234
+                  click_rate:
+                    type: number
+                    format: double
+                    minimum: 0
+                    maximum: 1
+                    description: Click-through rate
+                    example: 0.262
+                  conversions:
+                    type: integer
+                    minimum: 0
+                    description: Conversions attributed to template
+                    example: 89
+                  conversion_rate:
+                    type: number
+                    format: double
+                    minimum: 0
+                    maximum: 1
+                    description: Conversion rate
+                    example: 0.071
+                  bounced:
+                    type: integer
+                    minimum: 0
+                    description: Bounced messages
+                    example: 12
+                  bounce_rate:
+                    type: number
+                    format: double
+                    minimum: 0
+                    maximum: 1
+                    description: Bounce rate
+                    example: 0.0096
+                  complained:
+                    type: integer
+                    minimum: 0
+                    description: Spam complaints
+                    example: 3
+                  complaint_rate:
+                    type: number
+                    format: double
+                    minimum: 0
+                    maximum: 1
+                    description: Complaint rate
+                    example: 0.0024
+                  revenue_attributed:
+                    type: number
+                    format: double
+                    minimum: 0
+                    description: Revenue attributed to template (INR)
+                    example: 125000.00
+        summary:
+          type: object
+          description: Aggregated metrics across all templates
+          properties:
+            total_templates:
+              type: integer
+              minimum: 0
+              description: Number of templates in report
+              example: 15
+            total_sent:
+              type: integer
+              minimum: 0
+              description: Total messages sent across all templates
+              example: 18750
+            avg_delivery_rate:
+              type: number
+              format: double
+              minimum: 0
+              maximum: 1
+              description: Average delivery rate
+              example: 0.985
+            avg_open_rate:
+              type: number
+              format: double
+              minimum: 0
+              maximum: 1
+              description: Average open rate
+              example: 0.715
+            avg_click_rate:
+              type: number
+              format: double
+              minimum: 0
+              maximum: 1
+              description: Average click rate
+              example: 0.245
+            total_revenue:
+              type: number
+              format: double
+              minimum: 0
+              description: Total attributed revenue (INR)
+              example: 1875000.00
+
+    ErrorResponse:
+      type: object
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+          description: URI identifying the problem type
+          example: "https://pocm.com/errors/validation"
+        title:
+          type: string
+          description: Short, human-readable summary
+          example: "Template Validation Error"
+        status:
+          type: integer
+          description: HTTP status code
+          example: 400
+        detail:
+          type: string
+          description: Human-readable explanation
+          example: "Template content contains invalid MJML syntax"
+        instance:
+          type: string
+          format: uri
+          description: URI reference identifying the specific occurrence
+          example: "/templates/order_confirmation_premium_v2"
+        errors:
+          type: array
+          description: Field-level validation errors
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                example: "content"
+              message:
+                type: string
+                example: "MJML syntax error at line 15: unclosed mj-text tag"
+              code:
+                type: string
+                example: "INVALID_MJML_SYNTAX"
+

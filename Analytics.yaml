@@ -1,0 +1,1395 @@
+openapi: 3.0.3
+info:
+  title: POCM E-commerce Analytics Service API
+  version: 2.0.0
+  description: |
+    Analytics Service API for POCM e-commerce platform. 
+    Ingests events from multiple microservices (cart, checkout, payment, notification, 
+    logistics, user, inventory, feedback, search, and more) to power analytics dashboards.
+    
+    **Data Retention**: Events with occurred_at up to 7 days in the past are accepted.
+    **Payload Limits**: Maximum 64KB per event payload.
+    **PII Policy**: Minimize PII and use hashed identifiers where possible.
+    **Schema Evolution**: Additive-only changes; consumers should ignore unknown fields.
+    **Breaking Changes**: Will be versioned under new API paths (/v3, etc.).
+  contact:
+    name: POCM Analytics Side
+    email: akshat.sinha@pointofcaremicrofluidics.com
+  license:
+    name: Proprietary
+    url: #to_be_formed_later
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Ingestion
+    description: Event ingestion endpoints
+  - name: Query
+    description: Event query and retrieval endpoints
+  - name: Health
+    description: Health and readiness checks
+
+paths:
+  /analytics/ingest:
+    post:
+      tags: [Ingestion]
+      summary: Ingest analytics event
+      description: |
+        Accepts analytics events from any service in the POCM e-commerce ecosystem.
+        Supports idempotency via Idempotency-Key header and distributed tracing.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          description: Optional idempotency key for duplicate prevention
+          schema:
+            type: string
+            pattern: '^[a-zA-Z0-9\-_]{1,255}$'
+            example: "req_1234567890abcdef"
+        - name: Traceparent
+          in: header
+          description: W3C trace context for distributed tracing
+          schema:
+            type: string
+            example: "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IngestEnvelope'
+            examples:
+              cart_event:
+                summary: Cart Event Example
+                value:
+                  type: cart
+                  occurred_at: "2025-08-10T18:45:00Z"
+                  producer: cart-service
+                  source_service: cart-api
+                  user_id: "user_12345"
+                  session_id: "sess_abcdef123456"
+                  trace_id: "trace_987654321"
+                  data:
+                    cart_id: "CART78901"
+                    items_added:
+                      - product_id: "PROD001"
+                        quantity: 2
+                        price: 29.99
+                    cart_total_value: 59.98
+                    currency: "INR"
+                    device_platform: "web"
+              payment_event:
+                summary: Payment Event Example
+                value:
+                  type: payment
+                  occurred_at: "2025-08-10T18:50:00Z"
+                  producer: payment-service
+                  source_service: payment-gateway
+                  user_id: "user_12345"
+                  order_id: "ORDER_789"
+                  data:
+                    transaction_id: "TXN_ABC123"
+                    payment_gateway: "stripe"
+                    payment_method: "credit_card"
+                    payment_status: "captured"
+                    amount: 59.98
+                    currency: "INR"
+      responses:
+        '200':
+          description: Event ingested successfully
+          headers:
+            X-Request-Id:
+              description: Request correlation ID
+              schema:
+                type: string
+            X-RateLimit-Limit:
+              description: Request limit per window
+              schema:
+                type: integer
+            X-RateLimit-Remaining:
+              description: Remaining requests in window
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestResponse'
+              examples:
+                success:
+                  value:
+                    event_id: "evt_1234567890abcdef"
+                    status: "ingested"
+                    deduped: false
+                    received_at: "2025-08-10T18:45:01Z"
+        '202':
+          description: Event accepted for async processing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestResponse'
+        '400':
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                validation_error:
+                  value:
+                    type: "https://pocm.com/errors/validation"
+                    title: "Validation Error"
+                    status: 400
+                    detail: "Request payload validation failed"
+                    errors:
+                      - field: "data.amount"
+                        message: "must be a positive number"
+        '409':
+          description: Idempotency conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          headers:
+            Retry-After:
+              description: Seconds to wait before retry
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /analytics/events:
+    get:
+      tags: [Query]
+      summary: Query analytics events
+      description: Retrieve analytics events with filtering and pagination for debugging and dashboards
+      parameters:
+        - name: type
+          in: query
+          description: Filter by event type(s)
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/EventType'
+          style: form
+          explode: false
+        - name: user_id
+          in: query
+          description: Filter by user ID
+          schema:
+            type: string
+        - name: order_id
+          in: query
+          description: Filter by order ID
+          schema:
+            type: string
+        - name: from
+          in: query
+          description: Start time filter (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          description: End time filter (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          description: Maximum number of events to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 100
+        - name: cursor
+          in: query
+          description: Pagination cursor for keyset pagination
+          schema:
+            type: string
+        - name: sort
+          in: query
+          description: Sort order
+          schema:
+            type: string
+            enum: [occurred_at_desc, occurred_at_asc]
+            default: occurred_at_desc
+      responses:
+        '200':
+          description: Events retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventsResponse'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /analytics/events/{id}:
+    get:
+      tags: [Query]
+      summary: Get single event by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Event ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Event found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      description: Basic health check for load balancers
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /ready:
+    get:
+      tags: [Health]
+      summary: Readiness check
+      description: Readiness check for Kubernetes probes
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ready"
+                  dependencies:
+                    type: object
+                    properties:
+                      database:
+                        type: string
+                        example: "connected"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for service authentication
+
+  schemas:
+    EventType:
+      type: string
+      enum: [cart, checkout, payment, notification, logistics, user, inventory, feedback, search, recommendation, promotion, affiliate, subscription, support, review, wishlist, comparison, abandonment, referral, loyalty]
+      description: |
+        Event types supported by the analytics service. New types may be added;
+        consumers should handle unknown types gracefully.
+
+    IngestEnvelope:
+      type: object
+      required: [type, data, occurred_at]
+      properties:
+        type:
+          $ref: '#/components/schemas/EventType'
+        data:
+          oneOf:
+            - $ref: '#/components/schemas/CartEvent'
+            - $ref: '#/components/schemas/CheckoutEvent'
+            - $ref: '#/components/schemas/PaymentEvent'
+            - $ref: '#/components/schemas/NotificationEvent'
+            - $ref: '#/components/schemas/LogisticsEvent'
+            - $ref: '#/components/schemas/UserEvent'
+            - $ref: '#/components/schemas/InventoryEvent'
+            - $ref: '#/components/schemas/FeedbackEvent'
+            - $ref: '#/components/schemas/SearchEvent'
+            - $ref: '#/components/schemas/RecommendationEvent'
+            - $ref: '#/components/schemas/PromotionEvent'
+            - $ref: '#/components/schemas/AffiliateEvent'
+            - $ref: '#/components/schemas/SubscriptionEvent'
+            - $ref: '#/components/schemas/SupportEvent'
+            - $ref: '#/components/schemas/ReviewEvent'
+            - $ref: '#/components/schemas/WishlistEvent'
+            - $ref: '#/components/schemas/ComparisonEvent'
+            - $ref: '#/components/schemas/AbandonmentEvent'
+            - $ref: '#/components/schemas/ReferralEvent'
+            - $ref: '#/components/schemas/LoyaltyEvent'
+          discriminator:
+            propertyName: type
+            mapping:
+              cart: '#/components/schemas/CartEvent'
+              checkout: '#/components/schemas/CheckoutEvent'
+              payment: '#/components/schemas/PaymentEvent'
+              notification: '#/components/schemas/NotificationEvent'
+              logistics: '#/components/schemas/LogisticsEvent'
+              user: '#/components/schemas/UserEvent'
+              inventory: '#/components/schemas/InventoryEvent'
+              feedback: '#/components/schemas/FeedbackEvent'
+              search: '#/components/schemas/SearchEvent'
+              recommendation: '#/components/schemas/RecommendationEvent'
+              promotion: '#/components/schemas/PromotionEvent'
+              affiliate: '#/components/schemas/AffiliateEvent'
+              subscription: '#/components/schemas/SubscriptionEvent'
+              support: '#/components/schemas/SupportEvent'
+              review: '#/components/schemas/ReviewEvent'
+              wishlist: '#/components/schemas/WishlistEvent'
+              comparison: '#/components/schemas/ComparisonEvent'
+              abandonment: '#/components/schemas/AbandonmentEvent'
+              referral: '#/components/schemas/ReferralEvent'
+              loyalty: '#/components/schemas/LoyaltyEvent'
+        occurred_at:
+          type: string
+          format: date-time
+          description: When the event occurred (ISO 8601)
+          example: "2025-08-10T18:45:00Z"
+        producer:
+          type: string
+          description: Service that produced the event
+          example: "cart-service"
+        source_service:
+          type: string
+          description: Specific service component
+          example: "cart-api"
+        user_id:
+          type: string
+          description: User identifier (optional shortcut for envelope extraction)
+          example: "user_12345"
+        order_id:
+          type: string
+          description: Order identifier (optional shortcut for envelope extraction)
+          example: "ORDER_789"
+        session_id:
+          type: string
+          description: Session identifier
+          example: "sess_abcdef123456"
+        trace_id:
+          type: string
+          description: Distributed tracing ID
+          example: "trace_987654321"
+        idempotency_key:
+          type: string
+          pattern: '^[a-zA-Z0-9\-_]{1,255}$'
+          description: Idempotency key for duplicate prevention
+          example: "req_1234567890abcdef"
+
+    # Shared Components
+    Money:
+      type: object
+      required: [amount, currency]
+      properties:
+        amount:
+          type: number
+          format: double
+          minimum: 0
+          example: 29.99
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+          example: "INR"
+
+    Geo:
+      type: object
+      properties:
+        country:
+          type: string
+          pattern: '^[A-Z]{2}$'
+          example: "US"
+        region:
+          type: string
+          example: "California"
+        city:
+          type: string
+          example: "San Francisco"
+
+    Device:
+      type: object
+      properties:
+        platform:
+          type: string
+          enum: [web, mobile_app, tablet, desktop]
+          example: "web"
+        user_agent:
+          type: string
+          maxLength: 500
+          example: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        screen_resolution:
+          type: string
+          pattern: '^\d+x\d+$'
+          example: "1920x1080"
+
+    # Event Schemas
+    CartEvent:
+      type: object
+      required: [cart_id]
+      properties:
+        cart_id:
+          type: string
+          example: "CART78901"
+        action:
+          type: string
+          enum: [item_added, item_removed, item_updated, cart_viewed, cart_cleared]
+          example: "item_added"
+        items_added:
+          type: array
+          items:
+            type: object
+            required: [product_id, quantity]
+            properties:
+              product_id:
+                type: string
+                example: "PROD001"
+              quantity:
+                type: integer
+                minimum: 1
+                example: 2
+              price:
+                type: number
+                format: double
+                minimum: 0
+                example: 29.99
+              category:
+                type: string
+                example: "electronics"
+        cart_total:
+          $ref: '#/components/schemas/Money'
+        cart_abandonment_duration:
+          type: string
+          pattern: '^PT(\d+H)?(\d+M)?(\d+S)?$'
+          description: ISO 8601 duration
+          example: "PT10M23S"
+        coupon_code:
+          type: string
+          example: "SAVE20"
+        device:
+          $ref: '#/components/schemas/Device'
+        geo:
+          $ref: '#/components/schemas/Geo'
+
+    CheckoutEvent:
+      type: object
+      required: [cart_id, checkout_status]
+      properties:
+        cart_id:
+          type: string
+          example: "CART78901"
+        checkout_status:
+          type: string
+          enum: [started, completed, abandoned, failed]
+          example: "completed"
+        total_order_value:
+          $ref: '#/components/schemas/Money'
+        number_of_items:
+          type: integer
+          minimum: 1
+          example: 3
+        applied_discounts:
+          type: number
+          format: double
+          minimum: 0
+          example: 5.99
+        payment_method:
+          type: string
+          enum: [credit_card, debit_card, paypal, apple_pay, google_pay, bank_transfer, cash_on_delivery]
+          example: "credit_card"
+        shipping_region:
+          type: string
+          example: "North America"
+        checkout_duration:
+          type: string
+          pattern: '^PT(\d+H)?(\d+M)?(\d+S)?$'
+          description: ISO 8601 duration
+          example: "PT5M30S"
+        session_id:
+          type: string
+          example: "sess_checkout_123"
+
+    PaymentEvent:
+      type: object
+      required: [transaction_id, payment_status, amount, currency]
+      properties:
+        transaction_id:
+          type: string
+          example: "TXN_ABC123"
+        payment_gateway:
+          type: string
+          enum: [stripe, paypal, square, razorpay, adyen]
+          example: "stripe"
+        payment_method:
+          type: string
+          enum: [credit_card, debit_card, paypal, apple_pay, google_pay, bank_transfer, cash_on_delivery]
+          example: "credit_card"
+        payment_status:
+          type: string
+          enum: [pending, authorized, captured, failed, refunded, partially_refunded, cancelled]
+          example: "captured"
+        failure_reason:
+          type: string
+          nullable: true
+          example: "insufficient_funds"
+        amount:
+          type: number
+          format: double
+          minimum: 0
+          example: 59.98
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+          example: "INR"
+        refund_amount:
+          type: number
+          format: double
+          minimum: 0
+          nullable: true
+          example: 10.00
+        confirmation_duration:
+          type: string
+          pattern: '^PT(\d+H)?(\d+M)?(\d+S)?$'
+          description: ISO 8601 duration
+          example: "PT2S"
+        risk_score:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 100
+          example: 15.5
+
+    NotificationEvent:
+      type: object
+      required: [notification_type, delivery_status]
+      properties:
+        notification_type:
+          type: string
+          enum: [email, sms, push, in_app, webhook]
+          example: "email"
+        notification_event:
+          type: string
+          enum: [order_confirmation, shipping_update, payment_receipt, promotion, reminder, welcome]
+          example: "order_confirmation"
+        delivery_status:
+          type: string
+          enum: [sent, delivered, opened, clicked, bounced, failed, unsubscribed]
+          example: "delivered"
+        template_id:
+          type: string
+          example: "template_order_confirm_v2"
+        vendor:
+          type: string
+          enum: [sendgrid, mailchimp, twilio, firebase, custom]
+          example: "sendgrid"
+        language:
+          type: string
+          pattern: '^[a-z]{2}(-[A-Z]{2})?$'
+          example: "en-US"
+        trigger_source:
+          type: string
+          example: "order_service"
+        open_rate:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+          example: 0.85
+        click_through_rate:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+          example: 0.12
+
+    LogisticsEvent:
+      type: object
+      required: [warehouse_id, delivery_status]
+      properties:
+        warehouse_id:
+          type: string
+          example: "WH_NYC_001"
+        delivery_partner:
+          type: string
+          enum: [fedex, ups, dhl, usps, amazon_logistics, local_courier]
+          example: "fedex"
+        tracking_id:
+          type: string
+          example: "1Z999AA1234567890"
+        delivery_status:
+          type: string
+          enum: [pending, picked_up, in_transit, out_for_delivery, delivered, failed, returned]
+          example: "delivered"
+        estimated_delivery:
+          type: string
+          format: date-time
+          example: "2025-08-12T15:00:00Z"
+        actual_delivery:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2025-08-12T14:30:00Z"
+        delivery_region:
+          type: string
+          example: "Northeast"
+        return_status:
+          type: string
+          enum: [none, requested, approved, in_transit, completed]
+          example: "none"
+        delivery_delay_duration:
+          type: string
+          pattern: '^PT(\d+H)?(\d+M)?(\d+S)?$'
+          description: ISO 8601 duration
+          nullable: true
+          example: "PT2H30M"
+        delivery_updates:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: string
+              timestamp:
+                type: string
+                format: date-time
+              location:
+                type: string
+
+    UserEvent:
+      type: object
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [signup, login, logout, profile_update, password_change, email_verification, phone_verification, account_deletion]
+          example: "signup"
+        user_type:
+          type: string
+          enum: [guest, registered, premium, enterprise]
+          example: "registered"
+        login_method:
+          type: string
+          enum: [email_password, social_google, social_facebook, social_apple, phone_otp, sso]
+          example: "email_password"
+        login_count:
+          type: integer
+          minimum: 0
+          example: 15
+        last_active:
+          type: string
+          format: date-time
+          example: "2025-08-10T17:30:00Z"
+        email_verified:
+          type: boolean
+          example: true
+        mobile_verified:
+          type: boolean
+          example: false
+        referral_code:
+          type: string
+          nullable: true
+          example: "REF123ABC"
+        avg_session_duration:
+          type: string
+          pattern: '^PT(\d+H)?(\d+M)?(\d+S)?$'
+          description: ISO 8601 duration
+          example: "PT25M"
+        device:
+          $ref: '#/components/schemas/Device'
+        geo:
+          $ref: '#/components/schemas/Geo'
+
+    InventoryEvent:
+      type: object
+      required: [product_id, warehouse_id, stock_level]
+      properties:
+        product_id:
+          type: string
+          example: "PROD001"
+        warehouse_id:
+          type: string
+          example: "WH_NYC_001"
+        stock_level:
+          type: integer
+          minimum: 0
+          example: 150
+        action:
+          type: string
+          enum: [restock, sale, return, adjustment, transfer, reservation]
+          example: "sale"
+        quantity_changed:
+          type: integer
+          example: -2
+        last_restock:
+          type: string
+          format: date-time
+          example: "2025-08-08T10:00:00Z"
+        out_of_stock_frequency:
+          type: integer
+          minimum: 0
+          example: 3
+        product_category:
+          type: string
+          example: "electronics"
+        avg_turnover_days:
+          type: integer
+          minimum: 0
+          example: 30
+        returned_units:
+          type: integer
+          minimum: 0
+          example: 5
+        daily_units_sold:
+          type: integer
+          minimum: 0
+          example: 12
+        reorder_threshold:
+          type: integer
+          minimum: 0
+          example: 20
+        shrinkage_rate:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+          example: 0.02
+        supplier_id:
+          type: string
+          example: "SUPP_TECH_001"
+
+    FeedbackEvent:
+      type: object
+      required: [feedback_id, rating, category]
+      properties:
+        feedback_id:
+          type: string
+          example: "FB_12345"
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 4
+        comment:
+          type: string
+          maxLength: 2000
+          example: "Great product, fast delivery!"
+        category:
+          type: string
+          enum: [product, service, delivery, website, support, general]
+          example: "product"
+        sentiment:
+          type: string
+          enum: [positive, negative, neutral]
+          example: "positive"
+        channel:
+          type: string
+          enum: [website, email, phone, chat, social_media, app]
+          example: "website"
+        resolved:
+          type: boolean
+          example: true
+        resolution_duration:
+          type: string
+          pattern: '^PT(\d+H)?(\d+M)?(\d+S)?$'
+          description: ISO 8601 duration
+          nullable: true
+          example: "PT2H15M"
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["quality", "shipping"]
+        helpful_votes:
+          type: integer
+          minimum: 0
+          example: 8
+
+    SearchEvent:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+          maxLength: 500
+          example: "wireless headphones"
+        filters_applied:
+          type: array
+          items:
+            type: object
+            properties:
+              filter_type:
+                type: string
+                example: "price_range"
+              filter_value:
+                type: string
+                example: "50-100"
+        results_returned:
+          type: integer
+          minimum: 0
+          example: 25
+        top_clicked_product:
+          type: string
+          nullable: true
+          example: "PROD_HEADPHONES_001"
+        click_position:
+          type: integer
+          minimum: 1
+          nullable: true
+          example: 3
+        abandoned_search:
+          type: boolean
+          example: false
+        category_clicked:
+          type: string
+          nullable: true
+          example: "electronics"
+        zero_result_flag:
+          type: boolean
+          example: false
+        search_duration:
+          type: string
+          pattern: '^PT(\d+H)?(\d+M)?(\d+S)?$'
+          description: ISO 8601 duration
+          example: "PT45S"
+        suggestion_clicked:
+          type: boolean
+          example: true
+        converted_to_order:
+          type: boolean
+          example: false
+        search_type:
+          type: string
+          enum: [text, voice, image, barcode]
+          example: "text"
+
+    RecommendationEvent:
+      type: object
+      required: [recommendation_type, algorithm]
+      properties:
+        recommendation_type:
+          type: string
+          enum: [product, category, brand, similar_users, trending, personalized]
+          example: "product"
+        algorithm:
+          type: string
+          enum: [collaborative_filtering, content_based, hybrid, ml_model, rule_based]
+          example: "collaborative_filtering"
+        recommended_items:
+          type: array
+          items:
+            type: object
+            properties:
+              item_id:
+                type: string
+              item_type:
+                type: string
+              score:
+                type: number
+                format: double
+              position:
+                type: integer
+        context:
+          type: string
+          enum: [homepage, product_page, cart, checkout, email, search_results]
+          example: "product_page"
+        clicked:
+          type: boolean
+          example: true
+        clicked_item_id:
+          type: string
+          nullable: true
+          example: "PROD_REC_001"
+        converted:
+          type: boolean
+          example: false
+        model_version:
+          type: string
+          example: "v2.1.0"
+
+    PromotionEvent:
+      type: object
+      required: [promotion_id, action]
+      properties:
+        promotion_id:
+          type: string
+          example: "PROMO_SUMMER_2025"
+        promotion_type:
+          type: string
+          enum: [discount, bogo, free_shipping, cashback, loyalty_points]
+          example: "discount"
+        action:
+          type: string
+          enum: [viewed, clicked, applied, removed, expired]
+          example: "applied"
+        discount_amount:
+          $ref: '#/components/schemas/Money'
+        discount_percentage:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 100
+          nullable: true
+          example: 20.0
+        minimum_order_value:
+          $ref: '#/components/schemas/Money'
+        promotion_channel:
+          type: string
+          enum: [email, website_banner, app_notification, social_media, affiliate]
+          example: "website_banner"
+        campaign_id:
+          type: string
+          example: "CAMP_SUMMER_001"
+
+    AffiliateEvent:
+      type: object
+      required: [affiliate_id, action]
+      properties:
+        affiliate_id:
+          type: string
+          example: "AFF_PARTNER_001"
+        action:
+          type: string
+          enum: [click, conversion, commission_earned, payout]
+          example: "conversion"
+        commission_rate:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+          example: 0.05
+        commission_amount:
+          $ref: '#/components/schemas/Money'
+        referral_url:
+          type: string
+          format: uri
+          example: "https://pocm.com/ref/partner001"
+        conversion_value:
+          $ref: '#/components/schemas/Money'
+        tracking_id:
+          type: string
+          example: "TRACK_AFF_12345"
+
+    SubscriptionEvent:
+      type: object
+      required: [subscription_id, action]
+      properties:
+        subscription_id:
+          type: string
+          example: "SUB_PREMIUM_001"
+        action:
+          type: string
+          enum: [created, renewed, cancelled, paused, resumed, upgraded, downgraded]
+          example: "renewed"
+        plan_id:
+          type: string
+          example: "PLAN_PREMIUM_MONTHLY"
+        billing_cycle:
+          type: string
+          enum: [monthly, quarterly, yearly]
+          example: "monthly"
+        subscription_value:
+          $ref: '#/components/schemas/Money'
+        trial_period:
+          type: boolean
+          example: false
+        auto_renewal:
+          type: boolean
+          example: true
+        cancellation_reason:
+          type: string
+          enum: [price, features, competition, service_quality, other]
+          nullable: true
+          example: "price"
+
+    SupportEvent:
+      type: object
+      required: [ticket_id, action]
+      properties:
+        ticket_id:
+          type: string
+          example: "TICKET_12345"
+        action:
+          type: string
+          enum: [created, updated, resolved, closed, escalated, reopened]
+          example: "resolved"
+        category:
+          type: string
+          enum: [technical, billing, product, shipping, account, general]
+          example: "technical"
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+          example: "medium"
+        channel:
+          type: string
+          enum: [email, chat, phone, ticket_system, social_media]
+          example: "chat"
+        agent_id:
+          type: string
+          nullable: true
+          example: "AGENT_001"
+        resolution_duration:
+          type: string
+          pattern: '^PT(\d+H)?(\d+M)?(\d+S)?$'
+          description: ISO 8601 duration
+          nullable: true
+          example: "PT2H30M"
+        satisfaction_rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          nullable: true
+          example: 4
+
+    ReviewEvent:
+      type: object
+      required: [review_id, product_id, rating]
+      properties:
+        review_id:
+          type: string
+          example: "REV_12345"
+        product_id:
+          type: string
+          example: "PROD_001"
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 4
+        review_text:
+          type: string
+          maxLength: 5000
+          nullable: true
+          example: "Excellent product quality and fast shipping!"
+        verified_purchase:
+          type: boolean
+          example: true
+        helpful_votes:
+          type: integer
+          minimum: 0
+          example: 12
+        total_votes:
+          type: integer
+          minimum: 0
+          example: 15
+        review_status:
+          type: string
+          enum: [pending, approved, rejected, flagged]
+          example: "approved"
+        moderation_reason:
+          type: string
+          nullable: true
+          example: "inappropriate_content"
+
+    WishlistEvent:
+      type: object
+      required: [action]
+      properties:
+        wishlist_id:
+          type: string
+          example: "WISH_USER_001"
+        action:
+          type: string
+          enum: [item_added, item_removed, wishlist_shared, item_moved_to_cart]
+          example: "item_added"
+        product_id:
+          type: string
+          example: "PROD_001"
+        wishlist_size:
+          type: integer
+          minimum: 0
+          example: 5
+        shared_with:
+          type: array
+          items:
+            type: string
+          example: ["friend@email.com"]
+        privacy_setting:
+          type: string
+          enum: [private, public, friends_only]
+          example: "private"
+
+    ComparisonEvent:
+      type: object
+      required: [products_compared]
+      properties:
+        comparison_id:
+          type: string
+          example: "COMP_12345"
+        products_compared:
+          type: array
+          items:
+            type: string
+          minItems: 2
+          example: ["PROD_001", "PROD_002", "PROD_003"]
+        comparison_criteria:
+          type: array
+          items:
+            type: string
+          example: ["price", "features", "ratings"]
+        selected_product:
+          type: string
+          nullable: true
+          example: "PROD_002"
+        comparison_duration:
+          type: string
+          pattern: '^PT(\d+H)?(\d+M)?(\d+S)?$'
+          description: ISO 8601 duration
+          example: "PT3M45S"
+
+    AbandonmentEvent:
+      type: object
+      required: [abandonment_type, stage]
+      properties:
+        abandonment_type:
+          type: string
+          enum: [cart, checkout, search, product_view, registration]
+          example: "cart"
+        stage:
+          type: string
+          example: "payment_info"
+        abandonment_duration:
+          type: string
+          pattern: '^PT(\d+H)?(\d+M)?(\d+S)?$'
+          description: ISO 8601 duration
+          example: "PT15M"
+        cart_value:
+          $ref: '#/components/schemas/Money'
+        items_count:
+          type: integer
+          minimum: 0
+          example: 3
+        exit_page:
+          type: string
+          format: uri
+          example: "/checkout/payment"
+        recovery_email_sent:
+          type: boolean
+          example: true
+
+    ReferralEvent:
+      type: object
+      required: [referrer_id, action]
+      properties:
+        referrer_id:
+          type: string
+          example: "USER_REFERRER_001"
+        referee_id:
+          type: string
+          nullable: true
+          example: "USER_REFEREE_001"
+        referral_code:
+          type: string
+          example: "REF_ABC123"
+        action:
+          type: string
+          enum: [code_generated, code_shared, signup_via_referral, first_purchase, reward_earned]
+          example: "first_purchase"
+        reward_type:
+          type: string
+          enum: [discount, cashback, points, free_product]
+          nullable: true
+          example: "discount"
+        reward_value:
+          $ref: '#/components/schemas/Money'
+        sharing_channel:
+          type: string
+          enum: [email, social_media, direct_link, sms]
+          nullable: true
+          example: "social_media"
+
+    LoyaltyEvent:
+      type: object
+      required: [action]
+      properties:
+        loyalty_program_id:
+          type: string
+          example: "LOYALTY_PREMIUM"
+        action:
+          type: string
+          enum: [points_earned, points_redeemed, tier_upgraded, tier_downgraded, reward_claimed]
+          example: "points_earned"
+        points_earned:
+          type: integer
+          minimum: 0
+          nullable: true
+          example: 100
+        points_redeemed:
+          type: integer
+          minimum: 0
+          nullable: true
+          example: 500
+        current_points_balance:
+          type: integer
+          minimum: 0
+          example: 1250
+        tier_level:
+          type: string
+          enum: [bronze, silver, gold, platinum, diamond]
+          example: "gold"
+        reward_id:
+          type: string
+          nullable: true
+          example: "REWARD_FREE_SHIPPING"
+        expiry_date:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2025-12-31T23:59:59Z"
+
+    # Response Schemas
+    IngestResponse:
+      type: object
+      required: [event_id, status, received_at]
+      properties:
+        event_id:
+          type: string
+          description: Unique identifier for the ingested event
+          example: "evt_1234567890abcdef"
+        status:
+          type: string
+          enum: [ingested, queued, deduped]
+          example: "ingested"
+        deduped:
+          type: boolean
+          description: Whether this event was deduplicated
+          example: false
+        received_at:
+          type: string
+          format: date-time
+          description: When the event was received by the service
+          example: "2025-08-10T18:45:01Z"
+
+    Event:
+      type: object
+      required: [id, type, occurred_at, received_at, data]
+      properties:
+        id:
+          type: string
+          example: "evt_1234567890abcdef"
+        type:
+          $ref: '#/components/schemas/EventType'
+        occurred_at:
+          type: string
+          format: date-time
+          example: "2025-08-10T18:45:00Z"
+        received_at:
+          type: string
+          format: date-time
+          example: "2025-08-10T18:45:01Z"
+        producer:
+          type: string
+          example: "cart-service"
+        source_service:
+          type: string
+          example: "cart-api"
+        user_id:
+          type: string
+          nullable: true
+          example: "user_12345"
+        order_id:
+          type: string
+          nullable: true
+          example: "ORDER_789"
+        session_id:
+          type: string
+          nullable: true
+          example: "sess_abcdef123456"
+        trace_id:
+          type: string
+          nullable: true
+          example: "trace_987654321"
+        data:
+          type: object
+          description: Event-specific payload
+
+    EventsResponse:
+      type: object
+      required: [items, total, has_more]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Event'
+        total:
+          type: integer
+          description: Total number of events matching the query
+          example: 1500
+        has_more:
+          type: boolean
+          description: Whether there are more events available
+          example: true
+        next_cursor:
+          type: string
+          nullable: true
+          description: Cursor for the next page of results
+          example: "cursor_next_page_token"
+
+    ErrorResponse:
+      type: object
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+          description: URI identifying the problem type
+          example: "https://pocm.com/errors/validation"
+        title:
+          type: string
+          description: Short, human-readable summary
+          example: "Validation Error"
+        status:
+          type: integer
+          description: HTTP status code
+          example: 400
+        detail:
+          type: string
+          description: Human-readable explanation
+          example: "Request payload validation failed"
+        instance:
+          type: string
+          format: uri
+          description: URI reference identifying the specific occurrence
+          example: "/analytics/ingest"
+        errors:
+          type: array
+          description: Field-level validation errors
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                example: "data.amount"
+              message:
+                type: string
+                example: "must be a positive number"
