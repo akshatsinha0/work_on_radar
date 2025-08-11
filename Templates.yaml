@@ -506,7 +506,7 @@ paths:
                   variables:
                     customer_name: "Rajesh"
                     order_id: "POCM-2025-001234"
-                    tracking_url: "https://track.pocm.com/POCM-2025-001234"
+                    tracking_url: "https://track.our_website_link.com/POCM-2025-001234"
                   delivery_options:
                     provider: "twilio"
                     priority: "normal"
@@ -1247,7 +1247,7 @@ components:
           type: string
           format: uri
           description: URL to track message delivery status
-          example: "https://templates.pocm.com/track/msg_1234567890abcdef"
+          example: "https://templates.our_website_link.com/track/msg_1234567890abcdef"
 
     TemplateVariant:
       type: object
@@ -1574,7 +1574,7 @@ components:
           type: string
           format: uri
           description: URI identifying the problem type
-          example: "https://pocm.com/errors/validation"
+          example: "https://our_website_link.com/errors/validation"
         title:
           type: string
           description: Short, human-readable summary

@@ -136,7 +136,7 @@ paths:
               examples:
                 validation_error:
                   value:
-                    type: "https://pocm.com/errors/validation"
+                    type: "https://our_website_link.com/errors/validation"
                     title: "Validation Error"
                     status: 400
                     detail: "Request payload validation failed"
@@ -992,7 +992,7 @@ components:
         referral_url:
           type: string
           format: uri
-          example: "https://pocm.com/ref/partner001"
+          example: "https://our_website_link.com/ref/partner001"
         conversion_value:
           $ref: '#/components/schemas/Money'
         tracking_id:
@@ -1363,7 +1363,7 @@ components:
           type: string
           format: uri
           description: URI identifying the problem type
-          example: "https://pocm.com/errors/validation"
+          example: "https://our_website_link.com/errors/validation"
         title:
           type: string
           description: Short, human-readable summary
