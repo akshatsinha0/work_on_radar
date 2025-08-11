@@ -7,10 +7,10 @@
 # INTEGRATION OPTIONS FOR TEMPLATE DELIVERY:
 #
 # Transactional Email Services:
-# - Postmark: Premium deliverability with detailed analytics, great for order confirmations
-# - Amazon SES: Most cost-effective at scale, requires custom bounce handling
-# - SendGrid: Strong template editor and A/B testing features
-# - Mailgun: Excellent API design with powerful routing rules
+# - MSG91: Premium deliverability with detailed analytics, great for order confirmations
+# - Netcore Cloud: Most cost-effective at scale, requires custom bounce handling
+# - Pepipost: Strong template editor and A/B testing features
+# - Kaleyra: Excellent API design with powerful routing rules
 # - Mailtrap: Perfect for testing email templates before production
 #
 # Multi-channel Marketing Automation:
@@ -20,9 +20,9 @@
 # All three offer visual template builders and direct Shopify/WooCommerce connectors
 #
 # SMS and Messaging APIs:
-# - Twilio: Industry standard with global reach and compliance tools
-# - MessageBird: Strong in European markets with omnichannel capabilities
-# - Sinch: Competitive pricing for high-volume SMS with good Indian coverage
+# - MSG91: Industry standard with strong Indian market presence and compliance tools
+# - Kaleyra: Strong in Indian markets with omnichannel capabilities
+# - TextLocal: Competitive pricing for high-volume SMS with excellent Indian coverage
 # - WhatsApp Business API: Essential for customer support templates
 #
 # Push and In-App Messaging:
@@ -38,8 +38,8 @@
 # RECOMMENDED INTEGRATION PATTERNS:
 #
 # For Order Lifecycle:
-# 1. Order placed → render email template → send via Postmark for reliability
-# 2. Payment confirmed → render SMS template → send via Twilio for speed
+# 1. Order placed → render email template → send via MSG91 for reliability
+# 2. Payment confirmed → render SMS template → send via Kaleyra for speed
 # 3. Item shipped → render push notification → send via MoEngage with tracking link
 #
 # For Marketing Campaigns:
@@ -408,7 +408,7 @@ paths:
                     total_amount: 2499.00
                     delivery_date: "2025-08-15"
                     items:
-                      - name: "Microfluidic Chip - Blood Analysis"
+                      - name: "Nanofluidic Injection Patch - Diabetes Management"
                         quantity: 2
                         price: 1249.50
                   personalization:
@@ -489,7 +489,7 @@ paths:
                     total_amount: 2499.00
                     delivery_date: "2025-08-15"
                   delivery_options:
-                    provider: "postmark"
+                    provider: "msg91"
                     priority: "high"
                     track_opens: true
                     track_clicks: true
@@ -508,7 +508,7 @@ paths:
                     order_id: "POCM-2025-001234"
                     tracking_url: "https://track.our_website_link.com/POCM-2025-001234"
                   delivery_options:
-                    provider: "twilio"
+                    provider: "kaleyra"
                     priority: "normal"
       responses:
         '202':
@@ -693,10 +693,10 @@ paths:
                       delivery_providers:
                         type: object
                         properties:
-                          postmark:
+                          msg91:
                             type: string
                             example: "connected"
-                          twilio:
+                          kaleyra:
                             type: string
                             example: "connected"
 
@@ -726,7 +726,7 @@ components:
       enum: [transactional, marketing, support, system, lifecycle, promotional]
       description: |
         Business categories for template organization:
-        - transactional: Order confirmations, receipts, shipping updates
+        - transactional: Order confirmations, receipts, delivery updates
         - marketing: Newsletters, product recommendations, campaigns
         - support: Help desk responses, ticket updates, surveys
         - system: Password resets, account verification, alerts
@@ -853,7 +853,7 @@ components:
           properties:
             provider:
               type: string
-              enum: [postmark, sendgrid, ses, twilio, messagebird, firebase]
+              enum: [msg91, netcore, pepipost, kaleyra, textlocal, firebase]
               description: Preferred delivery provider
             priority:
               type: string
@@ -976,7 +976,7 @@ components:
           properties:
             provider:
               type: string
-              enum: [postmark, sendgrid, ses, twilio, messagebird, firebase]
+              enum: [msg91, netcore, pepipost, kaleyra, textlocal, firebase]
             priority:
               type: string
               enum: [low, normal, high, urgent]
@@ -1013,7 +1013,7 @@ components:
           properties:
             provider:
               type: string
-              enum: [postmark, sendgrid, ses, twilio, messagebird, firebase]
+              enum: [msg91, netcore, pepipost, kaleyra, textlocal, firebase]
             priority:
               type: string
               enum: [low, normal, high, urgent]
@@ -1174,7 +1174,7 @@ components:
           properties:
             provider:
               type: string
-              enum: [postmark, sendgrid, ses, twilio, messagebird, firebase]
+              enum: [msg91, netcore, pepipost, kaleyra, textlocal, firebase]
               description: Override default delivery provider
             priority:
               type: string
@@ -1242,7 +1242,7 @@ components:
         provider:
           type: string
           description: Delivery provider used
-          example: "postmark"
+          example: "msg91"
         tracking_url:
           type: string
           format: uri
@@ -1370,7 +1370,7 @@ components:
         provider:
           type: string
           description: Delivery provider used
-          example: "postmark"
+          example: "msg91"
         provider_message_id:
           type: string
           description: Provider-specific message ID

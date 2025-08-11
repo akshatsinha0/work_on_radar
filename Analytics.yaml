@@ -72,9 +72,9 @@ paths:
                   data:
                     cart_id: "CART78901"
                     items_added:
-                      - product_id: "PROD001"
+                      - product_id: "NFLX_PATCH_001"
                         quantity: 2
-                        price: 29.99
+                        price: 1249.50
                     cart_total_value: 59.98
                     currency: "INR"
                     device_platform: "web"
@@ -89,7 +89,7 @@ paths:
                   order_id: "ORDER_789"
                   data:
                     transaction_id: "TXN_ABC123"
-                    payment_gateway: "stripe"
+                    payment_gateway: "razorpay"
                     payment_method: "credit_card"
                     payment_status: "captured"
                     amount: 59.98
@@ -432,10 +432,10 @@ components:
           example: "US"
         region:
           type: string
-          example: "California"
+          example: "Maharashtra"
         city:
           type: string
-          example: "San Francisco"
+          example: "Mumbai"
 
     Device:
       type: object
@@ -447,7 +447,7 @@ components:
         user_agent:
           type: string
           maxLength: 500
-          example: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+          example: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         screen_resolution:
           type: string
           pattern: '^\d+x\d+$'
@@ -473,7 +473,7 @@ components:
             properties:
               product_id:
                 type: string
-                example: "PROD001"
+                example: "NFLX_PATCH_001"
               quantity:
                 type: integer
                 minimum: 1
@@ -485,7 +485,7 @@ components:
                 example: 29.99
               category:
                 type: string
-                example: "electronics"
+                example: "microfluidics"
         cart_total:
           $ref: '#/components/schemas/Money'
         cart_abandonment_duration:
@@ -525,11 +525,11 @@ components:
           example: 5.99
         payment_method:
           type: string
-          enum: [credit_card, debit_card, paypal, apple_pay, google_pay, bank_transfer, cash_on_delivery]
-          example: "credit_card"
+          enum: [credit_card, debit_card, upi, paytm, google_pay, bank_transfer, cash_on_delivery]
+          example: "upi"
         shipping_region:
           type: string
-          example: "North America"
+          example: "Western India"
         checkout_duration:
           type: string
           pattern: '^PT(\d+H)?(\d+M)?(\d+S)?$'
@@ -548,12 +548,12 @@ components:
           example: "TXN_ABC123"
         payment_gateway:
           type: string
-          enum: [stripe, paypal, square, razorpay, adyen]
-          example: "stripe"
+          enum: [razorpay, payu, ccavenue, instamojo, cashfree]
+          example: "razorpay"
         payment_method:
           type: string
-          enum: [credit_card, debit_card, paypal, apple_pay, google_pay, bank_transfer, cash_on_delivery]
-          example: "credit_card"
+          enum: [credit_card, debit_card, upi, paytm, google_pay, bank_transfer, cash_on_delivery]
+          example: "upi"
         payment_status:
           type: string
           enum: [pending, authorized, captured, failed, refunded, partially_refunded, cancelled]
@@ -610,8 +610,8 @@ components:
           example: "template_order_confirm_v2"
         vendor:
           type: string
-          enum: [sendgrid, mailchimp, twilio, firebase, custom]
-          example: "sendgrid"
+          enum: [msg91, netcore, pepipost, firebase, custom]
+          example: "msg91"
         language:
           type: string
           pattern: '^[a-z]{2}(-[A-Z]{2})?$'
@@ -638,11 +638,11 @@ components:
       properties:
         warehouse_id:
           type: string
-          example: "WH_NYC_001"
+          example: "WH_MUM_001"
         delivery_partner:
           type: string
-          enum: [fedex, ups, dhl, usps, amazon_logistics, local_courier]
-          example: "fedex"
+          enum: [bluedart, dtdc, delhivery, ecom_express, xpressbees, local_courier]
+          example: "bluedart"
         tracking_id:
           type: string
           example: "1Z999AA1234567890"
@@ -661,7 +661,7 @@ components:
           example: "2025-08-12T14:30:00Z"
         delivery_region:
           type: string
-          example: "Northeast"
+          example: "Western Region"
         return_status:
           type: string
           enum: [none, requested, approved, in_transit, completed]
@@ -699,7 +699,7 @@ components:
           example: "registered"
         login_method:
           type: string
-          enum: [email_password, social_google, social_facebook, social_apple, phone_otp, sso]
+          enum: [email_password, social_google, social_facebook, phone_otp, aadhaar_otp, sso]
           example: "email_password"
         login_count:
           type: integer
@@ -735,10 +735,10 @@ components:
       properties:
         product_id:
           type: string
-          example: "PROD001"
+          example: "NFLX_PATCH_001"
         warehouse_id:
           type: string
-          example: "WH_NYC_001"
+          example: "WH_MUM_001"
         stock_level:
           type: integer
           minimum: 0
@@ -760,7 +760,7 @@ components:
           example: 3
         product_category:
           type: string
-          example: "electronics"
+          example: "microfluidics"
         avg_turnover_days:
           type: integer
           minimum: 0
@@ -802,7 +802,7 @@ components:
         comment:
           type: string
           maxLength: 2000
-          example: "Great product, fast delivery!"
+          example: "Excellent microfluidic patch, precise delivery mechanism!"
         category:
           type: string
           enum: [product, service, delivery, website, support, general]
@@ -828,7 +828,7 @@ components:
           type: array
           items:
             type: string
-          example: ["quality", "shipping"]
+          example: ["precision", "biocompatibility"]
         helpful_votes:
           type: integer
           minimum: 0
@@ -841,7 +841,7 @@ components:
         query:
           type: string
           maxLength: 500
-          example: "wireless headphones"
+          example: "nanofluidic injection patch"
         filters_applied:
           type: array
           items:
@@ -860,7 +860,7 @@ components:
         top_clicked_product:
           type: string
           nullable: true
-          example: "PROD_HEADPHONES_001"
+          example: "NFLX_PATCH_DIABETES_001"
         click_position:
           type: integer
           minimum: 1
@@ -872,7 +872,7 @@ components:
         category_clicked:
           type: string
           nullable: true
-          example: "electronics"
+          example: "nanofluidics"
         zero_result_flag:
           type: boolean
           example: false
@@ -945,7 +945,7 @@ components:
           example: "PROMO_SUMMER_2025"
         promotion_type:
           type: string
-          enum: [discount, bogo, free_shipping, cashback, loyalty_points]
+          enum: [discount, bogo, free_delivery, cashback, loyalty_points]
           example: "discount"
         action:
           type: string
@@ -1044,7 +1044,7 @@ components:
           example: "resolved"
         category:
           type: string
-          enum: [technical, billing, product, shipping, account, general]
+          enum: [technical, billing, product, delivery, account, general]
           example: "technical"
         priority:
           type: string
@@ -1080,7 +1080,7 @@ components:
           example: "REV_12345"
         product_id:
           type: string
-          example: "PROD_001"
+          example: "NFLX_PATCH_001"
         rating:
           type: integer
           minimum: 1
@@ -1090,7 +1090,7 @@ components:
           type: string
           maxLength: 5000
           nullable: true
-          example: "Excellent product quality and fast shipping!"
+          example: "Excellent microfluidic patch quality and precise delivery mechanism!"
         verified_purchase:
           type: boolean
           example: true
@@ -1124,7 +1124,7 @@ components:
           example: "item_added"
         product_id:
           type: string
-          example: "PROD_001"
+          example: "NFLX_PATCH_001"
         wishlist_size:
           type: integer
           minimum: 0
@@ -1151,7 +1151,7 @@ components:
           items:
             type: string
           minItems: 2
-          example: ["PROD_001", "PROD_002", "PROD_003"]
+          example: ["NFLX_PATCH_001", "MFLX_CHIP_002", "NFLX_SENSOR_003"]
         comparison_criteria:
           type: array
           items:
@@ -1260,7 +1260,7 @@ components:
         reward_id:
           type: string
           nullable: true
-          example: "REWARD_FREE_SHIPPING"
+          example: "REWARD_FREE_DELIVERY"
         expiry_date:
           type: string
           format: date-time
