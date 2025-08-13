@@ -1,43 +1,74 @@
 openapi: 3.0.3
 info:
-  title: POCM E-commerce Analytics Service API
-  version: 2.0.0
+  title: POCM Analytics Platform
+  version: 2.1.0
   description: |
-    Analytics Service API for POCM e-commerce platform. 
-    Ingests events from multiple microservices (cart, checkout, payment, notification, 
-    logistics, user, inventory, feedback, search, and more) to power analytics dashboards.
+    Analytics platform for POCM's microfluidics e-commerce ecosystem.
+    Processes in-future substantial events daily from well-coupled microservices across customer journey,
+    inventory management, biomedical device usage, and supply chain operations.
     
-    **Data Retention**: Events with occurred_at up to 7 days in the past are accepted.
-    **Payload Limits**: Maximum 64KB per event payload.
-    **PII Policy**: Minimize PII and use hashed identifiers where possible.
-    **Schema Evolution**: Additive-only changes; consumers should ignore unknown fields.
-    **Breaking Changes**: Will be versioned under new API paths (/v3, etc.).
+    *Real-time Processing*: Will hope upto sub-100ms event ingestion with immediate dashboard updates
+    *Data Lake Integration*: Automatic archival to S3-compatible storage for ML training
+    *Compliance*: HIPAA-ready for medical device data (data privacy)
+    *Multi-tenant*: Supports B2B customers with isolated analytics namespaces
+    *ML Pipeline*: Automated anomaly detection for device performance and user behavior
+    
+    *Event Categories*:
+    - Customer Journey: Cart, checkout, payment, support interactions
+    - Device Analytics: Patch usage patterns, sensor readings, efficacy metrics
+    - Supply Chain: Inventory levels, manufacturing batches, quality control
+    - Business Intelligence: Revenue attribution, cohort analysis, predictive modeling
+    
   contact:
-    name: POCM Analytics Side
-    email: akshat.sinha@pointofcaremicrofluidics.com
+    name: POCM Analytics Engineering
+    email: analytics-platform@example.com
   license:
     name: Proprietary
-    url: #to_be_formed_later
+    url: https://our_website_link.com/platform-license
+
+servers:
+  - url: https://analytics-api.our_future_website_link.com/v2
+    description: Primary production cluster (Mumbai)
+  - url: https://analytics-api-blr.our_future_website_link.com/v2
+    description: Secondary cluster (Bangalore)
+  - url: https://analytics-staging.our_future_website_link.com/v2
+    description: Staging environment
+  - url: https://analytics-dev.our_future_website_link.com/v2
+    description: Development environment
 
 security:
   - bearerAuth: []
+  - apiKeyAuth: []
 
 tags:
   - name: Ingestion
-    description: Event ingestion endpoints
+    description: High-throughput event ingestion with batching support
   - name: Query
-    description: Event query and retrieval endpoints
+    description: Real-time analytics queries with caching and aggregation
+  - name: Streaming
+    description: WebSocket streams for live dashboard updates
+  - name: Batch
+    description: Bulk operations for data migration and backfill
+  - name: ML
+    description: Machine learning model inference and training data
+  - name: Compliance
+    description: Data governance and audit trail endpoints
   - name: Health
-    description: Health and readiness checks
+    description: Service health, metrics, and operational monitoring
 
 paths:
   /analytics/ingest:
     post:
       tags: [Ingestion]
-      summary: Ingest analytics event
+      summary: Ingest single analytics event
       description: |
-        Accepts analytics events from any service in the POCM e-commerce ecosystem.
-        Supports idempotency via Idempotency-Key header and distributed tracing.
+        High-performance event ingestion endpoint handling so manyevents per second.
+        Automatically routes to appropriate data pipelines based on event type.
+        Supports real-time fraud detection for payment events and device anomaly detection.
+        
+        *Performance*: <50ms p95 latency, might integrate auto-scaling based on traffic
+        *Reliability*: Circuit breaker protection, automatic retries, dead letter queues
+        *Monitoring*: Real-time metrics, alerting on ingestion failures or data quality issues
       parameters:
         - name: Idempotency-Key
           in: header
@@ -70,14 +101,25 @@ paths:
                   session_id: "sess_abcdef123456"
                   trace_id: "trace_987654321"
                   data:
-                    cart_id: "CART78901"
+                    cart_id: "CART_APOLLO_MUM_78901"
+                    healthcare_provider_id: "APOLLO_MUMBAI_ENDO_001"
+                    prescription_id: "RX_2025_DIABETES_001234"
                     items_added:
-                      - product_id: "NFLX_PATCH_001"
-                        quantity: 2
+                      - product_id: "NFLX_INSULIN_PATCH_001"
+                        quantity: 30
                         price: 1249.50
-                    cart_total_value: 59.98
+                        batch_number: "BATCH_20250810_MUM"
+                        regulatory_status: "FDA_APPROVED"
+                        patient_specific: true
+                        dosage_strength: "rapid_acting_insulin_2_units"
+                    cart_total_value: 37485.00
                     currency: "INR"
-                    device_platform: "web"
+                    device_platform: "healthcare_portal"
+                    clinical_context:
+                      patient_age_group: "adult"
+                      medical_condition: "type_1_diabetes"
+                      treatment_duration: "3_months"
+                      prescribing_physician: "Dr_Rajesh_Endocrinologist"
               payment_event:
                 summary: Payment Event Example
                 value:
@@ -167,11 +209,170 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /analytics/ingest/batch:
+    post:
+      tags: [Batch]
+      summary: Bulk ingest analytics events
+      description: |
+        High-volume batch ingestion for data imports and migrations.
+        Processes up to genuine number of events per request with parallel processing.
+        Includes data validation, deduplication, and partial failure handling.
+        
+        *Use Cases*: Historical data migration, ETL pipelines, partner integrations
+        *Performance*: Processes different events in less time
+        *Reliability*: Transactional processing with rollback on critical failures
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [events, batch_id]
+              properties:
+                batch_id:
+                  type: string
+                  description: Unique identifier for this batch operation
+                  example: "batch_2025_08_10_001"
+                events:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/IngestEnvelope'
+                  minItems: 1
+                  maxItems: 10000
+                  description: Array of events to process
+                options:
+                  type: object
+                  properties:
+                    validate_only:
+                      type: boolean
+                      default: false
+                      description: Validate events without persisting
+                    ignore_duplicates:
+                      type: boolean
+                      default: true
+                      description: Skip duplicate events based on idempotency keys
+                    parallel_processing:
+                      type: boolean
+                      default: true
+                      description: Enable parallel processing for faster throughput
+      responses:
+        '202':
+          description: Batch accepted for processing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  batch_id:
+                    type: string
+                    example: "batch_2025_08_10_001"
+                  status:
+                    type: string
+                    enum: [accepted, processing, completed, failed]
+                    example: "accepted"
+                  total_events:
+                    type: integer
+                    example: 5000
+                  estimated_completion:
+                    type: string
+                    format: date-time
+                    example: "2025-08-10T18:47:00Z"
+                  tracking_url:
+                    type: string
+                    format: uri
+                    example: "https://analytics-api.our_future_website_link.com/v2/batch/batch_2025_08_10_001/status"
+
+  /analytics/batch/{batch_id}/status:
+    get:
+      tags: [Batch]
+      summary: Get batch processing status
+      parameters:
+        - name: batch_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Batch status retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  batch_id:
+                    type: string
+                  status:
+                    type: string
+                    enum: [accepted, processing, completed, failed, cancelled]
+                  progress:
+                    type: object
+                    properties:
+                      processed:
+                        type: integer
+                      total:
+                        type: integer
+                      success_count:
+                        type: integer
+                      error_count:
+                        type: integer
+                      duplicate_count:
+                        type: integer
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        event_index:
+                          type: integer
+                        error_code:
+                          type: string
+                        error_message:
+                          type: string
+
+  /analytics/stream:
+    get:
+      tags: [Streaming]
+      summary: Real-time event stream
+      description: |
+        WebSocket endpoint for real-time analytics dashboard updates.
+        Streams filtered events based on subscription criteria.
+        Supports multiple concurrent connections with rate limiting.
+        
+        *Connection Limit*: 50 concurrent connections per API key
+        *Message Rate*: Up to 100 events per second per connection
+        *Filtering*: Real-time server-side filtering by event type, user, or custom criteria
+      parameters:
+        - name: filter
+          in: query
+          description: Event filter expression
+          schema:
+            type: string
+            example: "type:payment AND status:completed"
+        - name: buffer_size
+          in: query
+          description: Client buffer size for batching
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 10
+      responses:
+        '101':
+          description: WebSocket connection established
+        '400':
+          description: Invalid filter expression
+        '429':
+          description: Connection limit exceeded
+
   /analytics/events:
     get:
       tags: [Query]
-      summary: Query analytics events
-      description: Retrieve analytics events with filtering and pagination for debugging and dashboards
+      summary: Analytics query engine
+      description: |
+        Query interface with filtering, aggregation, and caching.
+        Supports complex analytical queries across billions of events with sub-second response times.
+        Includes automatic query optimization and result caching for frequently accessed data.
       parameters:
         - name: type
           in: query
@@ -263,11 +464,211 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /analytics/ml/predict:
+    post:
+      tags: [ML]
+      summary: Real-time ML predictions
+      description: |
+        Machine learning inference endpoint for real-time predictions.
+        Supports customer lifetime value, churn prediction, device failure prediction,
+        and personalized product recommendations based on usage patterns.
+        
+        *Models Available*:
+        - Customer churn prediction (accuracy: whatEver-traIned-moDel-USED)
+        - Device failure prediction (precision: whatEver-traIned-moDel-USED)
+        - Revenue forecasting (MAPE: whatEver-traIned-moDel-USED)
+        - Personalization engine (CTR improvement: whatEver-traIned-moDel-USED)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [model_name, features]
+              properties:
+                model_name:
+                  type: string
+                  enum: [churn_prediction, device_failure, revenue_forecast, personalization]
+                  example: "churn_prediction"
+                features:
+                  type: object
+                  description: Feature vector for prediction
+                  example:
+                    user_id: "user_12345"
+                    days_since_last_order: 45
+                    total_orders: 12
+                    avg_order_value: 2500.00
+                    device_usage_frequency: 0.85
+                    support_tickets: 2
+                options:
+                  type: object
+                  properties:
+                    explain:
+                      type: boolean
+                      default: false
+                      description: Include prediction explanation
+                    confidence_threshold:
+                      type: number
+                      minimum: 0
+                      maximum: 1
+                      default: 0.7
+      responses:
+        '200':
+          description: Prediction completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  prediction:
+                    type: number
+                    description: Prediction score or value
+                    example: 0.23
+                  confidence:
+                    type: number
+                    description: Model confidence score
+                    example: 0.87
+                  explanation:
+                    type: object
+                    description: Feature importance and reasoning
+                    properties:
+                      top_features:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            feature:
+                              type: string
+                            importance:
+                              type: number
+                  model_version:
+                    type: string
+                    example: "v2.3.1"
+
+  /analytics/compliance/audit:
+    get:
+      tags: [Compliance]
+      summary: Data access audit trail
+      description: |
+        Comprehensive audit trail for data access and modifications.
+        Required for HIPAA compliance when handling medical device data.
+        Tracks all data access, modifications, and deletions with full attribution.
+      parameters:
+        - name: user_id
+          in: query
+          description: Filter by user ID
+          schema:
+            type: string
+        - name: data_type
+          in: query
+          description: Filter by data type
+          schema:
+            type: string
+            enum: [pii, medical, financial, device_data]
+        - name: action
+          in: query
+          description: Filter by action type
+          schema:
+            type: string
+            enum: [read, write, delete, export]
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Audit trail retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  audit_entries:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        timestamp:
+                          type: string
+                          format: date-time
+                        user_id:
+                          type: string
+                        action:
+                          type: string
+                        resource:
+                          type: string
+                        ip_address:
+                          type: string
+                        user_agent:
+                          type: string
+                        data_classification:
+                          type: string
+                        compliance_flags:
+                          type: array
+                          items:
+                            type: string
+
+  /analytics/compliance/gdpr/export:
+    post:
+      tags: [Compliance]
+      summary: GDPR data export
+      description: |
+        Export all user data for GDPR compliance requests.
+        Generates comprehensive data package including analytics events,
+        derived insights, and ML model interactions.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, request_id]
+              properties:
+                user_id:
+                  type: string
+                  description: User ID for data export
+                request_id:
+                  type: string
+                  description: GDPR request tracking ID
+                include_derived_data:
+                  type: boolean
+                  default: true
+                  description: Include ML predictions and analytics insights
+                format:
+                  type: string
+                  enum: [json, csv, xml]
+                  default: json
+      responses:
+        '202':
+          description: Export request accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  export_id:
+                    type: string
+                  estimated_completion:
+                    type: string
+                    format: date-time
+                  download_url:
+                    type: string
+                    format: uri
+                    description: Available after completion
+
   /health:
     get:
       tags: [Health]
-      summary: Health check
-      description: Basic health check for load balancers
+      summary: Comprehensive health check
+      description: |
+        Multi-layer health check including database connectivity, cache status,
+        ML model availability, and downstream service dependencies.
       responses:
         '200':
           description: Service is healthy
@@ -312,15 +713,54 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: JWT token for service authentication
+      description: |
+        JWT authentication with role-based access control.
+        Includes claims for data access levels, geographic restrictions,
+        and compliance requirements (HIPAA, GDPR).
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: |
+        Service-to-service API key authentication.
+        Rate limited based on service tier and usage patterns.
+        Includes automatic key rotation and usage analytics.
+    deviceAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Medical device authentication for direct event reporting.
+        Includes device identity verification, batch tracking,
+        and tamper-evident logging for regulatory compliance.
 
   schemas:
     EventType:
       type: string
-      enum: [cart, checkout, payment, notification, logistics, user, inventory, feedback, search, recommendation, promotion, affiliate, subscription, support, review, wishlist, comparison, abandonment, referral, loyalty]
+      enum: [
+        # Core E-commerce Events
+        cart, checkout, payment, notification, logistics, user, inventory, feedback, search,
+        # Marketing & Growth Events  
+        recommendation, promotion, affiliate, subscription, support, review, wishlist, comparison, abandonment, referral, loyalty,
+        # Microfluidics Device Events
+        device_activation, patch_application, sensor_reading, dosage_delivery, device_removal, calibration,
+        # Medical & Compliance Events
+        adverse_event, efficacy_measurement, patient_outcome, clinical_data, regulatory_report,
+        # Supply Chain & Manufacturing Events
+        batch_production, quality_control, sterilization, packaging, distribution, recall,
+        # B2B & Healthcare Provider Events
+        provider_onboarding, bulk_order, training_completion, certification, audit_trail,
+        # Analytics Events
+        ml_prediction, anomaly_detection, cohort_analysis, a_b_test, personalization
+      ]
       description: |
-        Event types supported by the analytics service. New types may be added;
-        consumers should handle unknown types gracefully.
+        Comprehensive event taxonomy for POCM's microfluidics e-commerce platform.
+        Covers entire ecosystem from device manufacturing to patient outcomes.
+        
+        *Device Lifecycle*: activation → application → monitoring → removal
+        *Medical Compliance*: adverse events, efficacy tracking, regulatory reporting
+        *Supply Chain*: batch tracking, quality control, distribution monitoring
+        *Business Intelligence*: ML predictions, cohort analysis, experimentation
 
     IngestEnvelope:
       type: object
@@ -453,7 +893,283 @@ components:
           pattern: '^\d+x\d+$'
           example: "1920x1080"
 
-    # Event Schemas
+    # Microfluidics Device Event Schemas
+    DeviceActivationEvent:
+      type: object
+      required: [device_id, batch_number, activation_method]
+      properties:
+        device_id:
+          type: string
+          pattern: '^NFLX_[A-Z0-9]{8}$'
+          example: "NFLX_A1B2C3D4"
+          description: Unique device identifier with manufacturing batch trace
+        batch_number:
+          type: string
+          pattern: '^BATCH_\d{8}_[A-Z]{3}$'
+          example: "BATCH_20250810_MUM"
+          description: Manufacturing batch for quality control and recall tracking
+        activation_method:
+          type: string
+          enum: [qr_scan, nfc_tap, manual_entry, app_pairing]
+          example: "qr_scan"
+        patient_id:
+          type: string
+          description: Anonymized patient identifier for medical tracking
+          example: "PT_HASH_ABC123"
+        healthcare_provider:
+          type: string
+          description: Prescribing healthcare provider or institution
+          example: "Apollo_Hospital_Mumbai"
+        prescription_id:
+          type: string
+          description: Associated prescription or treatment plan
+          example: "RX_2025_001234"
+        device_type:
+          type: string
+          enum: [insulin_patch, pain_relief_patch, hormone_patch_microsizefibers, vaccine_patch, diagnostic_sensor]
+          example: "insulin_patch"
+        activation_location:
+          $ref: '#/components/schemas/Geo'
+        device_metadata:
+          type: object
+          properties:
+            firmware_version:
+              type: string
+              example: "v2.1.3"
+            manufacturing_date:
+              type: string
+              format: date
+              example: "2025-08-05"
+            expiry_date:
+              type: string
+              format: date
+              example: "2025-11-05"
+            storage_conditions:
+              type: object
+              properties:
+                temperature_range:
+                  type: string
+                  example: "2-8°C"
+                humidity_exposure:
+                  type: number
+                  example: 45.2
+
+    PatchApplicationEvent:
+      type: object
+      required: [device_id, application_site, application_timestamp]
+      properties:
+        device_id:
+          type: string
+          example: "NFLX_A1B2C3D4"
+        application_site:
+          type: string
+          enum: [upper_arm, abdomen, thigh, back, chest]
+          example: "upper_arm"
+        application_timestamp:
+          type: string
+          format: date-time
+          example: "2025-08-10T09:30:00Z"
+        skin_preparation:
+          type: object
+          properties:
+            cleaned:
+              type: boolean
+              example: true
+            hair_removed:
+              type: boolean
+              example: true
+            skin_condition:
+              type: string
+              enum: [normal, dry, oily, sensitive, irritated]
+              example: "normal"
+        application_pressure:
+          type: number
+          description: Applied pressure in Pascals
+          example: 1500.0
+        adhesion_quality:
+          type: string
+          enum: [excellent, good, fair, poor]
+          example: "excellent"
+        patient_comfort_score:
+          type: integer
+          minimum: 1
+          maximum: 10
+          example: 8
+        environmental_conditions:
+          type: object
+          properties:
+            temperature:
+              type: number
+              example: 24.5
+            humidity:
+              type: number
+              example: 60.2
+            altitude:
+              type: number
+              example: 14.0
+
+    SensorReadingEvent:
+      type: object
+      required: [device_id, sensor_type, reading_value, timestamp]
+      properties:
+        device_id:
+          type: string
+          example: "NFLX_A1B2C3D4"
+        sensor_type:
+          type: string
+          enum: [glucose, insulin_level, ph, temperature, pressure, flow_rate, biomarker]
+          example: "glucose"
+        reading_value:
+          type: number
+          description: Sensor reading in appropriate units
+          example: 120.5
+        unit_of_measurement:
+          type: string
+          example: "mg/dL"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-08-10T10:15:00Z"
+        reading_quality:
+          type: string
+          enum: [high, medium, low, error]
+          example: "high"
+        calibration_status:
+          type: string
+          enum: [calibrated, needs_calibration, calibration_expired]
+          example: "calibrated"
+        baseline_deviation:
+          type: number
+          description: Deviation from patient baseline in percentage
+          example: 15.2
+        trend_direction:
+          type: string
+          enum: [rising, falling, stable, fluctuating]
+          example: "stable"
+        alert_triggered:
+          type: boolean
+          example: false
+        clinical_significance:
+          type: string
+          enum: [normal, attention_needed, critical, emergency]
+          example: "normal"
+
+    DosageDeliveryEvent:
+      type: object
+      required: [device_id, substance_delivered, dosage_amount, delivery_timestamp]
+      properties:
+        device_id:
+          type: string
+          example: "NFLX_A1B2C3D4"
+        substance_delivered:
+          type: string
+          example: "insulin_rapid_acting"
+        dosage_amount:
+          type: number
+          description: Amount delivered in appropriate units
+          example: 2.5
+        unit_of_measurement:
+          type: string
+          example: "units"
+        delivery_timestamp:
+          type: string
+          format: date-time
+          example: "2025-08-10T10:30:00Z"
+        delivery_method:
+          type: string
+          enum: [micro_needle, transdermal, iontophoresis, ultrasonic]
+          example: "micro_needle"
+        delivery_rate:
+          type: number
+          description: Delivery rate in units per minute
+          example: 0.5
+        delivery_pressure:
+          type: number
+          description: Delivery pressure in Pascals
+          example: 2000.0
+        delivery_success:
+          type: boolean
+          example: true
+        patient_response:
+          type: object
+          properties:
+            immediate_reaction:
+              type: string
+              enum: [none, mild_irritation, moderate_reaction, severe_reaction]
+              example: "none"
+            pain_level:
+              type: integer
+              minimum: 0
+              maximum: 10
+              example: 1
+            absorption_rate:
+              type: string
+              enum: [fast, normal, slow, impaired]
+              example: "normal"
+        reservoir_level_remaining:
+          type: number
+          description: Remaining substance in reservoir (percentage)
+          example: 75.5
+
+    AdverseEventReport:
+      type: object
+      required: [device_id, event_type, severity, reporter_type]
+      properties:
+        device_id:
+          type: string
+          example: "NFLX_A1B2C3D4"
+        event_type:
+          type: string
+          enum: [skin_irritation, allergic_reaction, device_malfunction, dosage_error, infection, other]
+          example: "skin_irritation"
+        severity:
+          type: string
+          enum: [mild, moderate, severe, life_threatening]
+          example: "mild"
+        reporter_type:
+          type: string
+          enum: [patient, healthcare_provider, caregiver, manufacturer]
+          example: "patient"
+        event_description:
+          type: string
+          maxLength: 2000
+          example: "Mild redness around patch application site, resolved within 2 hours"
+        onset_time:
+          type: string
+          format: date-time
+          example: "2025-08-10T11:00:00Z"
+        resolution_time:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2025-08-10T13:00:00Z"
+        medical_intervention_required:
+          type: boolean
+          example: false
+        regulatory_reporting_required:
+          type: boolean
+          example: false
+        batch_investigation_triggered:
+          type: boolean
+          example: false
+        patient_demographics:
+          type: object
+          properties:
+            age_group:
+              type: string
+              enum: [pediatric, adult, geriatric]
+              example: "adult"
+            gender:
+              type: string
+              enum: [male, female, other, not_specified]
+              example: "female"
+            medical_conditions:
+              type: array
+              items:
+                type: string
+              example: ["diabetes_type_1", "hypertension"]
+
+    # Core E-commerce Event Schemas
     CartEvent:
       type: object
       required: [cart_id]
@@ -695,7 +1411,7 @@ components:
           example: "signup"
         user_type:
           type: string
-          enum: [guest, registered, premium, enterprise]
+          enum: [guest, registered, premium, business]
           example: "registered"
         login_method:
           type: string

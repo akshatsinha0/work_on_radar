@@ -15,12 +15,12 @@
 #
 # Multi-channel Marketing Automation:
 # - Omnisend: Built for e-commerce with cart abandonment flows and SMS integration
-# - Klaviyo: Advanced segmentation and personalization for product recommendations  
+# - Klaviyo: Segmentation and personalization for product recommendations  
 # - Brevo: Good balance of features and pricing with WhatsApp support
 # All three offer visual template builders and direct Shopify/WooCommerce connectors
 #
 # SMS and Messaging APIs:
-# - MSG91: Industry standard with strong Indian market presence and compliance tools
+# - MSG91: Assured standard with strong Indian market presence and compliance tools
 # - Kaleyra: Strong in Indian markets with omnichannel capabilities
 # - TextLocal: Competitive pricing for high-volume SMS with excellent Indian coverage
 # - WhatsApp Business API: Essential for customer support templates
@@ -60,25 +60,51 @@
 
 openapi: 3.0.3
 info:
-  title: POCM Templates Service API
-  version: 2.0.0
+  title: POCM Omnichannel Communication Platform via different possible template formation
+  version: 2.2.0
   description: |
-    Template management service for POCM e-commerce platform.
-    Handles creation, rendering, and delivery of communication templates across
-    email, SMS, push notifications, and in-app messaging channels.
+    Communication orchestration platform serving daily messages
+    across email, SMS, WhatsApp, push notifications, and in-app channels.
+    Powers patient care communications, healthcare provider notifications,
+    regulatory compliance messaging, and marketing automation.
     
-    **Template Engine**: Will support Liquid, MJML, and Handlebars syntax
-    **Localization**: Multi-language template support with fallbacks
-    **Personalization**: Dynamic content rendering with customer data
+    *Message Volume*: Good amt of messages monthly with valuable delivery success rate
+    *Template Library*: Types of imported or pre-built templates for medical device communications (our lab products)
+    *Compliance*: HIPAA-compliant messaging, FDA-approved patient communications
+    *Personalization*: AI-driven content optimization with 40% engagement improvement
+    *Multi-language*: As many Indian languages plus English with medical terminology support
+    *Real-time*: Sub-second template rendering with global CDN distribution
+    
+    *Specialized Features*:
+    - Medical device (like those injection patches) usage instructions with interactive media
+    - Adverse event reporting workflows with automated escalation
+    - Patient adherence reminders with behavioral triggers
+    - Healthcare provider alerts with clinical decision support
+    - Regulatory compliance notifications with audit trails
+    
+    *Integration Ecosystem*: Native connectors for EMR systems, pharmacy networks,
+    insurance providers, and telemedicine platforms across India (<- if we went with the dreamworks and ideal workflow)
   contact:
-    name: POCM Templates side
-    email: akshat.sinha@pointofcaremicrofluidics.com
+    name: POCM Communication Engineering
+    email: communications-platform@example.com
   license:
     name: Proprietary
-    url: #to_be_featured_later_once_created
+    url: https://our_website_link.com/communication-platform-license
+
+servers:
+  - url: https://communications.our_future_website_link.com/v2
+    description: Primary communication platform (Mumbai)
+  - url: https://communications-blr.our_future_website_link.com/v2
+    description: Secondary cluster (Bangalore)
+  - url: https://communications-staging.our_future_website_link.com/v2
+    description: Staging environment
+  - url: https://communications-dev.our_future_website_link.com/v2
+    description: Development environment
 
 security:
   - bearerAuth: []
+  - apiKeyAuth: []
+  - hipaaAuth: []
 
 tags:
   - name: Templates
@@ -98,7 +124,7 @@ paths:
       tags: [Templates]
       summary: List templates with filtering
       description: |
-        Retrieve templates with advanced filtering options.
+        Retrieve templates with filtering options.
         Supports pagination, search, and multi-criteria filtering.
       parameters:
         - name: type
@@ -403,14 +429,25 @@ paths:
                 summary: Order Confirmation Data
                 value:
                   variables:
-                    customer_name: "Rajesh Kumar"
+                    patient_name: "Dr. Priya Sharma"
                     order_id: "POCM-2025-001234"
-                    total_amount: 2499.00
+                    total_amount: 12495.00
                     delivery_date: "2025-08-15"
                     items:
-                      - name: "Nanofluidic Injection Patch - Diabetes Management"
-                        quantity: 2
+                      - name: "Nanofluidic Insulin Patch - Continuous Glucose Management"
+                        quantity: 10
                         price: 1249.50
+                        batch_number: "BATCH_20250810_MUM"
+                        expiry_date: "2025-11-15"
+                        regulatory_approval: "FDA_510K_APPROVED"
+                    healthcare_provider:
+                      name: "Apollo Hospital Mumbai"
+                      license_number: "MH_MED_12345"
+                      specialization: "Endocrinology"
+                    patient_safety_info:
+                      allergies: ["latex", "adhesive_sensitivity"]
+                      contraindications: []
+                      emergency_contact: "+91-98765-43210"
                   personalization:
                     user_id: "user_12345"
                     segment: "premium_customer"
@@ -454,13 +491,284 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /templates/medical/device-instructions:
+    post:
+      tags: [Medical]
+      summary: Generate device instruction templates
+      description: |
+        Specialized endpoint for generating medical device instruction templates
+        with interactive media, safety warnings, and compliance requirements.
+        Automatically includes regulatory disclaimers and emergency contact information.
+        
+        *Features*: Multi-language support, accessibility compliance, video integration
+        *Compliance*: FDA-approved content, HIPAA-compliant delivery
+        *Personalization*: Device-specific instructions, patient medical history integration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [device_type, patient_profile, instruction_type]
+              properties:
+                device_type:
+                  type: string
+                  enum: [insulin_patch, pain_relief_patch, hormone_patch, diagnostic_sensor]
+                  example: "insulin_patch"
+                patient_profile:
+                  type: object
+                  properties:
+                    age_group:
+                      type: string
+                      enum: [pediatric, adult, geriatric]
+                    medical_conditions:
+                      type: array
+                      items:
+                        type: string
+                    language_preference:
+                      type: string
+                      example: "hi-IN"
+                    literacy_level:
+                      type: string
+                      enum: [basic, intermediate, advanced]
+                    visual_impairment:
+                      type: boolean
+                instruction_type:
+                  type: string
+                  enum: [first_use, daily_use, troubleshooting, emergency, disposal]
+                  example: "first_use"
+                delivery_channels:
+                  type: array
+                  items:
+                    type: string
+                    enum: [email, sms, whatsapp, app_notification, printed_guide]
+                include_media:
+                  type: boolean
+                  default: true
+                  description: Include instructional videos and images
+      responses:
+        '200':
+          description: Device instructions generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  instruction_id:
+                    type: string
+                  templates_generated:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        channel:
+                          type: string
+                        template_id:
+                          type: string
+                        content_preview:
+                          type: string
+                        media_assets:
+                          type: array
+                          items:
+                            type: string
+                  compliance_verification:
+                    type: object
+                    properties:
+                      fda_approved:
+                        type: boolean
+                      hipaa_compliant:
+                        type: boolean
+                      accessibility_score:
+                        type: number
+
+  /templates/medical/adverse-event-workflow:
+    post:
+      tags: [Medical]
+      summary: Trigger adverse event communication workflow
+      description: |
+        Automated communication workflow for adverse event reporting and management.
+        Handles patient notifications, healthcare provider alerts, regulatory reporting,
+        and follow-up care coordination with appropriate escalation protocols.
+        
+        *Workflow Steps*: Initial assessment → Provider notification → Patient follow-up → Regulatory filing
+        *Compliance*: Automatic FDA MedWatch integration, HIPAA-compliant communications
+        *Escalation*: Severity-based routing with emergency protocol activation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [device_id, event_severity, patient_id, reporter_type]
+              properties:
+                device_id:
+                  type: string
+                  example: "NFLX_A1B2C3D4"
+                event_severity:
+                  type: string
+                  enum: [mild, moderate, severe, life_threatening]
+                patient_id:
+                  type: string
+                  example: "PT_HASH_ABC123"
+                reporter_type:
+                  type: string
+                  enum: [patient, healthcare_provider, caregiver]
+                event_description:
+                  type: string
+                  maxLength: 2000
+                healthcare_provider_id:
+                  type: string
+                  nullable: true
+                immediate_medical_attention:
+                  type: boolean
+                  default: false
+      responses:
+        '202':
+          description: Adverse event workflow initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  workflow_id:
+                    type: string
+                  case_number:
+                    type: string
+                  notifications_sent:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        recipient_type:
+                          type: string
+                        channel:
+                          type: string
+                        message_id:
+                          type: string
+                        priority:
+                          type: string
+                  regulatory_filing_required:
+                    type: boolean
+                  estimated_resolution_time:
+                    type: string
+                    format: date-time
+
+  /templates/bulk/healthcare-providers:
+    post:
+      tags: [Bulk]
+      summary: Bulk communication to healthcare providers
+      description: |
+        Bulk messaging for healthcare provider networks.
+        Supports segmented messaging based on specialization, location, patient volume,
+        and device usage patterns with compliance tracking and delivery confirmation.
+        
+        *Scale*: Up to 100 providers per batch
+        *Segmentation*: Specialty, geography, patient demographics, device usage
+        *Compliance*: Medical communication regulations, opt-out management
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [template_id, provider_segments, message_priority]
+              properties:
+                template_id:
+                  type: string
+                provider_segments:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      segment_name:
+                        type: string
+                      criteria:
+                        type: object
+                        properties:
+                          specialties:
+                            type: array
+                            items:
+                              type: string
+                          regions:
+                            type: array
+                            items:
+                              type: string
+                          patient_volume:
+                            type: object
+                            properties:
+                              min:
+                                type: integer
+                              max:
+                                type: integer
+                message_priority:
+                  type: string
+                  enum: [routine, urgent, emergency, regulatory_required]
+                delivery_schedule:
+                  type: object
+                  properties:
+                    immediate:
+                      type: boolean
+                    scheduled_time:
+                      type: string
+                      format: date-time
+                    timezone:
+                      type: string
+                compliance_requirements:
+                  type: object
+                  properties:
+                    delivery_confirmation:
+                      type: boolean
+                    read_receipt:
+                      type: boolean
+                    response_tracking:
+                      type: boolean
+      responses:
+        '202':
+          description: Bulk communication initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bulk_id:
+                    type: string
+                    example: "bulk_2025_08_10_001"
+                  status:
+                    type: string
+                    enum: [accepted, processing]
+                    example: "accepted"
+                  total_recipients:
+                    type: integer
+                    example: 1250
+                  estimated_completion:
+                    type: string
+                    format: date-time
+                    example: "2025-08-10T19:30:00Z"
+                  tracking_url:
+                    type: string
+                    format: uri
+                    example: "https://communications.our_future_website_link.com/v2/bulk/bulk_2025_08_10_001/status"
+        '400':
+          description: Invalid bulk request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded for bulk operations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /templates/{id}/send:
     post:
       tags: [Delivery]
-      summary: Render and send template
+      summary: Intelligent message delivery
       description: |
-        Render template with data and send via configured delivery channels.
-        Supports immediate sending or scheduled delivery.
+        Message delivery with AI-powered optimization, compliance validation,
+        and multi-channel failover. Automatically selects optimal delivery time and channel
+        based on recipient behavior patterns and message urgency.
       parameters:
         - name: id
           in: path
@@ -707,31 +1015,104 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: JWT token for service authentication
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for service-to-service communication
+    hipaaAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        HIPAA-compliant authentication for medical communications.
+        Includes additional claims for healthcare provider verification,
+        patient consent validation, and audit trail requirements.
 
   schemas:
     TemplateType:
       type: string
-      enum: [email, sms, push, whatsapp, in_app, webhook]
+      enum: [
+        # Standard Communication Channels
+        email, sms, push, whatsapp, in_app, webhook,
+        # Medical Device Specific Channels
+        device_display, voice_alert, haptic_feedback, led_indicator,
+        # Healthcare Provider Channels
+        emr_integration, pager_alert, clinical_dashboard, fax,
+        # Compliance & Documentation Channels
+        regulatory_filing, audit_report, printed_material, video_instruction,
+        # Emergency & Critical Channels
+        emergency_broadcast, critical_alert, escalation_chain
+      ]
       description: |
-        Template delivery channel types:
-        - email: HTML/text emails via SMTP or API
-        - sms: Text messages via SMS gateways
-        - push: Mobile push notifications
-        - whatsapp: WhatsApp Business messages
-        - in_app: In-application notifications
-        - webhook: HTTP callbacks with template data
+        Comprehensive communication channels for healthcare ecosystem:
+        
+        *Standard Channels*:
+        - email: HIPAA-compliant HTML/text emails with encryption
+        - sms: Secure SMS with patient consent verification
+        - whatsapp: WhatsApp Business API with end-to-end encryption
+        - push: Mobile app notifications with medical alert priorities
+        
+        *Medical Device Integration*:
+        - device_display: Direct messages to device LCD/OLED screens
+        - voice_alert: Audio notifications for critical device states
+        - haptic_feedback: Vibration patterns for patient alerts
+        - led_indicator: Color-coded LED status communications
+        
+        *Healthcare Provider Systems*:
+        - emr_integration: Direct integration with Electronic Medical Records
+        - clinical_dashboard: Real-time provider dashboard notifications
+        - pager_alert: Legacy pager system integration for hospitals
+        
+        *Compliance & Documentation*:
+        - regulatory_filing: Automated FDA/regulatory body submissions
+        - audit_report: Compliance documentation and audit trails
+        - printed_material: Patient information leaflets and instructions
+        - video_instruction: Interactive video content for device training
+        
+        *Emergency Protocols*:
+        - emergency_broadcast: Multi-channel emergency notifications
+        - critical_alert: High-priority medical alerts with escalation
+        - escalation_chain: Automated escalation to medical professionals
 
     TemplateCategory:
       type: string
-      enum: [transactional, marketing, support, system, lifecycle, promotional]
+      enum: [
+        # Core Business Categories
+        transactional, marketing, support, system, lifecycle, promotional,
+        # Medical Device Specific Categories
+        patient_care, device_instructions, adverse_events, clinical_alerts,
+        # Healthcare Provider Categories  
+        provider_notifications, training_materials, compliance_reports,
+        # Regulatory & Compliance Categories
+        regulatory_filing, safety_alerts, recall_notifications, audit_communications,
+        # B2B Healthcare Categories
+        bulk_orders, certification_updates, partnership_communications
+      ]
       description: |
-        Business categories for template organization:
+        Comprehensive template categories for POCM's healthcare ecosystem:
+        
+        *Core Business*:
         - transactional: Order confirmations, receipts, delivery updates
-        - marketing: Newsletters, product recommendations, campaigns
-        - support: Help desk responses, ticket updates, surveys
-        - system: Password resets, account verification, alerts
-        - lifecycle: Welcome series, onboarding, retention
-        - promotional: Sales announcements, discount codes, events
+        - marketing: Product education, clinical studies, health awareness campaigns
+        - support: Technical support, clinical guidance, troubleshooting
+        - system: Account management, authentication, platform notifications
+        
+        *Patient Care*:
+        - patient_care: Treatment reminders, adherence support, wellness check-ins
+        - device_instructions: Usage guides, safety protocols, maintenance alerts
+        - adverse_events: Incident reporting, follow-up care, safety monitoring
+        - clinical_alerts: Critical readings, emergency protocols, care escalation
+        
+        *Healthcare Providers*:
+        - provider_notifications: Patient updates, device alerts, clinical insights
+        - training_materials: Device education, best practices, certification programs
+        - compliance_reports: Usage analytics, patient outcomes, regulatory updates
+        
+        *Regulatory Compliance*:
+        - regulatory_filing: FDA submissions, clinical trial communications
+        - safety_alerts: Device recalls, safety updates, risk communications
+        - audit_communications: Compliance verification, quality assurance updates
 
     TemplateVariable:
       type: object
