@@ -2082,7 +2082,7 @@ components:
           example: "https://our_website_link.com/errors/validation"
         title:
           type: string
-          description: Short, human-readable summary
+          description: Short, summary
           example: "Validation Error"
         status:
           type: integer
@@ -2090,7 +2090,7 @@ components:
           example: 400
         detail:
           type: string
-          description: Human-readable explanation
+          description: explanation
           example: "Request payload validation failed"
         instance:
           type: string

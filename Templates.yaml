@@ -1134,7 +1134,7 @@ components:
         description:
           type: string
           maxLength: 200
-          description: Human-readable description of the variable
+          description: Description of the variable
           example: "Customer's full name for personalization"
         default_value:
           description: Default value if not provided (for optional variables)
@@ -1172,7 +1172,7 @@ components:
           type: string
           minLength: 3
           maxLength: 100
-          description: Human-readable template name
+          description: template name
           example: "Order Confirmation - Premium"
         type:
           $ref: '#/components/schemas/TemplateType'
@@ -1958,7 +1958,7 @@ components:
           example: "https://our_website_link.com/errors/validation"
         title:
           type: string
-          description: Short, human-readable summary
+          description: Short, summary
           example: "Template Validation Error"
         status:
           type: integer
@@ -1966,7 +1966,7 @@ components:
           example: 400
         detail:
           type: string
-          description: Human-readable explanation
+          description: explanation
           example: "Template content contains invalid MJML syntax"
         instance:
           type: string
