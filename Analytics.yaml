@@ -3,7 +3,7 @@ info:
   title: POCM Analytics Platform
   version: 2.1.0
   description: |
-    Analytics platform for POCM's microfluidics e-commerce ecosystem.
+    Analytics platform for POCM's microfluidics e-commerce ecosystem, viewed on the sptectrum of lab-on-chip technologies and services gathered by the R&D.
     Processes in-future substantial events daily from well-coupled microservices across customer journey,
     inventory management, biomedical device usage, and supply chain operations.
     
