@@ -1,0 +1,12 @@
+spring:
+  r2dbc:
+    url: r2dbc:postgresql://staging-db:5432/analytics
+    username: analytics
+    password: ${DB_PASSWORD:analytics}
+  redis:
+    host: staging-redis
+    port: 6379
+
+server:
+  port: 8085
+
