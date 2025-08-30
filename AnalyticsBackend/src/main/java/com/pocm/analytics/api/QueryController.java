@@ -36,7 +36,7 @@ public class QueryController {
         if(user_id!=null && !user_id.isBlank()){
             return eventRepository.findRecentByUser(user_id,Math.min(Math.max(limit,1),1000));
         }
-        return eventRepository.findByTypeAndTimeRange(EventType.cart,f,t,Math.min(Math.max(limit,1),100)); // fallback sample
+        return eventRepository.findByTypeAndTimeRange(EventType.cart,f,t,Math.min(Math.max(limit,1),100));
     }
 
     @GetMapping(path="/events/{id}",produces=MediaType.APPLICATION_JSON_VALUE)

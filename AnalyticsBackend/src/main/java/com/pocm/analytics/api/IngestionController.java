@@ -18,9 +18,11 @@ import java.time.Instant;
 @Validated
 public class IngestionController {
     private final EventRepository eventRepository;
+    private final com.pocm.analytics.service.EventService eventService;
 
-    public IngestionController(EventRepository eventRepository){
+    public IngestionController(EventRepository eventRepository, com.pocm.analytics.service.EventService eventService){
         this.eventRepository=eventRepository;
+        this.eventService=eventService;
     }
 
     @PostMapping(path="/ingest",consumes= MediaType.APPLICATION_JSON_VALUE,produces=MediaType.APPLICATION_JSON_VALUE)
@@ -49,7 +51,7 @@ public class IngestionController {
         e.setTraceId(env.trace_id);
         e.setIdempotencyKey(idem);
         e.setDataJson(env.data==null?"null":env.data.toString());
-        return eventRepository.save(e)
+        return eventService.process(e)
                 .map(saved->new IngestResponse(saved.getId().toString(),"ingested",false,Instant.now().toString()));
     }
 

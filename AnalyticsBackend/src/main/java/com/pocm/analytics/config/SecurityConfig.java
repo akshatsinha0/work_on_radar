@@ -19,9 +19,7 @@ public class SecurityConfig {
             .csrf(ServerHttpSecurity.CsrfSpec::disable)
             .authorizeExchange(exchanges -> exchanges
                 .pathMatchers(HttpMethod.GET, "/health", "/ready", "/actuator/**").permitAll()
-                .pathMatchers(HttpMethod.GET, "/analytics/events/**").authenticated()
-                .pathMatchers("/analytics/**").authenticated()
-                .anyExchange().permitAll() // keep permissive for now, tighten later
+                .anyExchange().authenticated()
             )
             .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
             .formLogin(ServerHttpSecurity.FormLoginSpec::disable)

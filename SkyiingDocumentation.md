@@ -69,19 +69,7 @@
 - `distribution_events`
 - `recall_events`
 
-### B2B & Healthcare Provider Event Tables
-- `provider_onboarding_events`
-- `bulk_order_events`
-- `training_completion_events`
-- `certification_events`
-- `audit_trail_events`
 
-### Analytics & ML Event Tables
-- `ml_prediction_events`
-- `anomaly_detection_events`
-- `cohort_analysis_events`
-- `a_b_test_events`
-- `personalization_events`
 
 ### Analytics Service Support Tables
 - `batch_operations` - Batch processing tracking

@@ -49,3 +49,10 @@ rate-limit:
   window-seconds: 60
   max-requests: 100
 
+cache:
+  ttl-seconds: 60
+
+security:
+  api-keys:
+    - dev-key-1
+
