@@ -43,6 +43,8 @@ security:
     audience: pocm-services
     secret-base64: ${JWT_SECRET_BASE64:changeme}
     expiration-seconds: 3600
+  api-keys:
+    - dev-key-1
 
 rate-limit:
   enabled: true
@@ -52,9 +54,6 @@ rate-limit:
 cache:
   ttl-seconds: 60
 
-security:
-  api-keys:
-    - dev-key-1
 
 kafka:
   topic-prefix: pocm.analytics
