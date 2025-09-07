@@ -19,6 +19,9 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
+    url: jdbc:postgresql://localhost:5432/analytics
+    user: analytics
+    password: analytics
   redis:
     host: localhost
     port: 6379

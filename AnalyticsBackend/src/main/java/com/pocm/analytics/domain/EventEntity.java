@@ -3,11 +3,11 @@ package com.pocm.analytics.domain;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
+import io.r2dbc.postgresql.codec.Json;
 
 import java.time.Instant;
-import java.util.Map;
 
-
+//entity to store events, keep data as JSONB via r2dbc Json
 @Data
 @Table("events")
 public class EventEntity {
@@ -23,6 +23,6 @@ public class EventEntity {
     private String sessionId;
     private String traceId;
     private String idempotencyKey;
-    private String dataJson;
+    private Json dataJson;
 }
 

@@ -48,7 +48,7 @@ public class IngestionController {
         e.setSessionId(env.session_id);
         e.setTraceId(env.trace_id);
         e.setIdempotencyKey(idem);
-        e.setDataJson(env.data==null?"null":env.data.toString());
+        e.setDataJson(io.r2dbc.postgresql.codec.Json.of(env.data==null?"null":env.data.toString()));
         return eventService.process(e)
                 .map(saved->new IngestResponse(saved.getId().toString(),"ingested",false,Instant.now().toString()));
     }

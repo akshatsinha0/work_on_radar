@@ -19,11 +19,11 @@ public class SecurityConfig {
             .csrf(ServerHttpSecurity.CsrfSpec::disable)
             .authorizeExchange(exchanges -> exchanges
                 .pathMatchers(HttpMethod.GET, "/health", "/ready", "/actuator/**").permitAll()
-                .anyExchange().authenticated()
+                // dev-friendly: allow all other endpoints; tighten later with JWT
+                .anyExchange().permitAll()
             )
             .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
-            .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
-            .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {}));
+            .formLogin(ServerHttpSecurity.FormLoginSpec::disable);
         return http.build();
     }
 }
