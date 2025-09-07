@@ -32,20 +32,48 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.3
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    ulimits:
+      nofile: 262144
+    volumes:
+      - chdata:/var/lib/clickhouse
   app:
     build: .
     depends_on:
       - postgres
       - redis
       - kafka
+      - clickhouse
+    env_file:
+      - .env
     environment:
-      SPRING_PROFILES_ACTIVE: dev
+      # App profile
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      # Postgres inside compose network
       SPRING_R2DBC_URL: r2dbc:postgresql://postgres:5432/analytics
       SPRING_R2DBC_USERNAME: analytics
       SPRING_R2DBC_PASSWORD: analytics
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/analytics
+      SPRING_DATASOURCE_USERNAME: analytics
+      SPRING_DATASOURCE_PASSWORD: analytics
+      # Redis and Kafka inside compose network
       SPRING_REDIS_HOST: redis
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+      # Micrometer endpoints for Prometheus
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: ${MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE:-health,info,metrics,prometheus}
+      # Kafka topic prefix (overridable via .env)
+      KAFKA_TOPIC_PREFIX: ${KAFKA_TOPIC_PREFIX:-pocm.analytics}
+      # ClickHouse: default to local container; can be overridden by .env to Cloud URL
+      CLICKHOUSE_URL: ${CLICKHOUSE_URL:-jdbc:clickhouse://clickhouse:8123/analytics}
+      CLICKHOUSE_USERNAME: ${CLICKHOUSE_USERNAME:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-}
+      # Security/keys (optional via .env)
+      JWT_SECRET_BASE64: ${JWT_SECRET_BASE64:-}
+      SECURITY_API_KEYS: ${SECURITY_API_KEYS:-dev-key-1}
     ports:
       - "8085:8085"
   prometheus:
@@ -66,4 +94,5 @@ services:
       - prometheus
 volumes:
   pgdata:
+  chdata:
 

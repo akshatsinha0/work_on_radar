@@ -10,7 +10,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 
-// reactive repository for events
+
 public interface EventRepository extends ReactiveCrudRepository<EventEntity,Long> {
     @Query("SELECT * FROM events WHERE type=:type AND occurred_at BETWEEN :from AND :to ORDER BY occurred_at DESC LIMIT :limit")
     Flux<EventEntity> findByTypeAndTimeRange(EventType type, Instant from, Instant to, long limit);

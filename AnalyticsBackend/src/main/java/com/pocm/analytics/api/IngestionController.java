@@ -12,7 +12,6 @@ import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 
-// simple controller to accept single event
 @RestController
 @RequestMapping(path="/analytics")
 @Validated
@@ -29,7 +28,6 @@ public class IngestionController {
     @ResponseStatus(HttpStatus.OK)
     public Mono<IngestResponse> ingest(@RequestHeader(value="Idempotency-Key",required=false) String idempotencyKey,
                                        @RequestBody @NotNull IngestEnvelope envelope){
-        // simple idempotency check
         if(idempotencyKey!=null && !idempotencyKey.isBlank()){
             return eventRepository.findFirstByIdempotencyKey(idempotencyKey)
                 .map(e->new IngestResponse(e.getId().toString(),"ingested",true,Instant.now().toString()))
@@ -55,10 +53,9 @@ public class IngestionController {
                 .map(saved->new IngestResponse(saved.getId().toString(),"ingested",false,Instant.now().toString()));
     }
 
-    // request model matching spec (simplified to keep code short)
     public static class IngestEnvelope{
         public EventType type;
-        public com.fasterxml.jackson.databind.JsonNode data; // keep as raw JSON object
+        public com.fasterxml.jackson.databind.JsonNode data;
         public Instant occurred_at;
         public String producer;
         public String source_service;

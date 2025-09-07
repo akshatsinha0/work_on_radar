@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.Instant;
 import java.util.Map;
 
-// simple health endpoints
+
 @RestController
 public class HealthController {
     @GetMapping(path="/health",produces=MediaType.APPLICATION_JSON_VALUE)

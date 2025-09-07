@@ -9,7 +9,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 
-// simple websocket stream: ticks every second
+
 @Component
 public class WebSocketStreamHandler implements WebSocketHandler {
     @Override

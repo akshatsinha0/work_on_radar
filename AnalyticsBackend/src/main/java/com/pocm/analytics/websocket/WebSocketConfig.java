@@ -9,7 +9,7 @@ import org.springframework.web.reactive.socket.server.support.WebSocketHandlerAd
 
 import java.util.Map;
 
-// simple websocket config mapping /ws/stream
+
 @Configuration
 public class WebSocketConfig {
     @Bean

@@ -12,7 +12,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
-// simple batch ingestion and status endpoints
 @RestController
 @RequestMapping("/analytics")
 public class BatchController {
@@ -55,14 +54,13 @@ public class BatchController {
         ));
     }
 
-    // simple request body models
     public static class BatchRequest{
         @NotBlank public String batch_id;
         public List<IngestEvent> events;
         public Map<String,Object> options;
     }
     public static class IngestEvent{
-        public String type; // keep generic
+        public String type;
         public Object data;
         public String occurred_at;
         public String producer;

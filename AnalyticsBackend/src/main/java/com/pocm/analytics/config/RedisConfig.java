@@ -6,7 +6,7 @@ import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 
-// simple redis config
+
 @Configuration
 public class RedisConfig {
     @Bean

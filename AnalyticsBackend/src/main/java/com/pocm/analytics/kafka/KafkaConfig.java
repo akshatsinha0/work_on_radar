@@ -13,7 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import java.util.HashMap;
 import java.util.Map;
 
-// simple kafka config with string key/value
+
 @Configuration
 @EnableKafka
 public class KafkaConfig {

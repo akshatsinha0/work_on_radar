@@ -11,7 +11,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
-// simple stubs for compliance endpoints
+
 @RestController
 @RequestMapping("/analytics/compliance")
 public class ComplianceController {

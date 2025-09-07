@@ -56,3 +56,11 @@ security:
   api-keys:
     - dev-key-1
 
+kafka:
+  topic-prefix: pocm.analytics
+
+clickhouse:
+  url: jdbc:clickhouse://localhost:8123/analytics
+  username: default
+  password: ""
+

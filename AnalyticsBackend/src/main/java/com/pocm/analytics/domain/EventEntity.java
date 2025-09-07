@@ -7,7 +7,7 @@ import org.springframework.data.relational.core.mapping.Table;
 import java.time.Instant;
 import java.util.Map;
 
-//entity to store events, keep data as JSON text for flexibility
+
 @Data
 @Table("events")
 public class EventEntity {
@@ -23,6 +23,6 @@ public class EventEntity {
     private String sessionId;
     private String traceId;
     private String idempotencyKey;
-    private String dataJson; // raw json stored as text/jsonb
+    private String dataJson;
 }
 

@@ -1,8 +1,6 @@
--- simple base schema, optimized later
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- events main table using identity and jsonb for payload
 CREATE TABLE IF NOT EXISTS events (
     id BIGSERIAL PRIMARY KEY,
     type VARCHAR(64) NOT NULL,
@@ -18,15 +16,12 @@ CREATE TABLE IF NOT EXISTS events (
     data_json JSONB NOT NULL
 );
 
--- unique idempotency per producer(optional)
 CREATE UNIQUE INDEX IF NOT EXISTS ux_events_idem ON events(idempotency_key) WHERE idempotency_key IS NOT NULL;
 
--- time based index for queries
 CREATE INDEX IF NOT EXISTS ix_events_occurred_at ON events(occurred_at DESC);
 CREATE INDEX IF NOT EXISTS ix_events_type_time ON events(type,occurred_at DESC);
 CREATE INDEX IF NOT EXISTS ix_events_user_time ON events(user_id,occurred_at DESC);
 
--- batch operations
 CREATE TABLE IF NOT EXISTS batch_operations (
     id BIGSERIAL PRIMARY KEY,
     batch_id VARCHAR(255) UNIQUE NOT NULL,
@@ -37,7 +32,6 @@ CREATE TABLE IF NOT EXISTS batch_operations (
     tracking_url TEXT
 );
 
--- trigger to keep updated_at fresh
 CREATE OR REPLACE FUNCTION set_updated_at() RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at = now();

@@ -12,7 +12,6 @@ import reactor.core.publisher.Mono;
 import java.time.Instant;
 import java.util.Optional;
 
-// simple query controller for listing and get-by-id
 @RestController
 @RequestMapping("/analytics")
 public class QueryController {

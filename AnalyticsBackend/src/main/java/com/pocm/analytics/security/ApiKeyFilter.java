@@ -12,7 +12,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 
-// simple API key filter using X-API-Key; allows health/ready without key
+
 @Component
 public class ApiKeyFilter implements WebFilter {
     private final List<String> apiKeys;

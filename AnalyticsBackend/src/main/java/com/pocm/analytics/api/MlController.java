@@ -7,13 +7,11 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
-// simple stub for ML predictions
 @RestController
 @RequestMapping("/analytics/ml")
 public class MlController {
     @PostMapping(path="/predict",consumes=MediaType.APPLICATION_JSON_VALUE,produces=MediaType.APPLICATION_JSON_VALUE)
     public Map<String,Object> predict(@RequestBody Map<String,Object> body){
-        // return dummy prediction
         return Map.of(
             "prediction",0.23,
             "confidence",0.87,

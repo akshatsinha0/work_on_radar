@@ -8,7 +8,7 @@ import org.springframework.security.config.annotation.web.reactive.EnableWebFlux
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 
-// simple security config allowing health endpoints, basic JWT/API-key hooks added later
+
 @Configuration
 @EnableWebFluxSecurity
 @EnableMethodSecurity
