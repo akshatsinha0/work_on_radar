@@ -15,6 +15,7 @@ public class VariantService {
   public Mono<TemplateVariant> create(UUID templateId, TemplateVariant v){
     v.setId(UUID.randomUUID());
     v.setTemplateId(templateId);
+    v.setNewEntity(true);
     return repo.save(v);
   }
 }

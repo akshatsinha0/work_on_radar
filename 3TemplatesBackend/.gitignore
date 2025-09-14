@@ -1,0 +1,55 @@
+# Build artifacts
+/target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Test reports and sites
+/target/surefire-reports/
+/target/failsafe-reports/
+/target/site/
+
+# Logs
+/logs/
+*.log
+*.out
+
+# IDE project files
+/.idea/
+*.iml
+*.ipr
+*.iws
+/.vscode/
+/.project
+/.classpath
+/.settings/
+/.factorypath
+/out/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Docker / Compose local overrides
+/docker-compose.override.yml
+
+# Local env files (keep examples if any)
+.env
+.env.*
+
+# Coverage and misc
+/coverage/
+*.lcov
+*.tmp
+*.bak
+*~
+
+# Node (if ever present)
+/node_modules/
+
+# Local data volumes (if mistakenly created inside repo)
+/pgdata/
+/tmpl_pgdata/
+/chdata/

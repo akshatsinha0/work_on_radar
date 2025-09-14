@@ -22,6 +22,7 @@ public class TemplateService {
 
   public Mono<Template> create(Template t){
     t.setId(UUID.randomUUID());
+    t.setNewEntity(true);
     return templateRepo.save(t);
   }
 
@@ -31,6 +32,7 @@ public class TemplateService {
 
   public Mono<TemplateVersion> addVersion(TemplateVersion v){
     v.setId(UUID.randomUUID());
+    v.setNewEntity(true);
     return versionRepo.save(v);
   }
 }

@@ -39,6 +39,7 @@ public class SendWorker {
 
       Message m = new Message();
       m.setId(UUID.randomUUID());
+      m.setNewEntity(true);
       m.setTemplateId(UUID.fromString(String.valueOf(payload.get("templateId"))));
       m.setVersion(Integer.parseInt(String.valueOf(payload.getOrDefault("version","1"))));
       m.setChannel(channel);

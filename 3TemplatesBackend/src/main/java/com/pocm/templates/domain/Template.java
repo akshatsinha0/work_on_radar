@@ -1,6 +1,8 @@
 package com.pocm.templates.domain;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.domain.Persistable;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
@@ -8,7 +10,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Table("templates")
-public class Template {
+public class Template implements Persistable<UUID> {
   @Id
   private UUID id;
   private String name;
@@ -23,7 +25,11 @@ public class Template {
   @Column("updated_at")
   private Instant updatedAt;
 
+  @Transient
+  private boolean newEntity = true;
+
   // getters/setters
+  @Override
   public UUID getId(){ return id; }
   public void setId(UUID id){ this.id=id; }
   public String getName(){ return name; }
@@ -42,4 +48,8 @@ public class Template {
   public void setCreatedAt(Instant createdAt){ this.createdAt=createdAt; }
   public Instant getUpdatedAt(){ return updatedAt; }
   public void setUpdatedAt(Instant updatedAt){ this.updatedAt=updatedAt; }
+
+  @Override
+  public boolean isNew() { return newEntity; }
+  public void setNewEntity(boolean newEntity){ this.newEntity=newEntity; }
 }
