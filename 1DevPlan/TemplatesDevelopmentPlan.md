@@ -1,0 +1,9 @@
+Templates service: how it will work and be achieved
+
+- The service exposes APIs to create and manage templates, add versions and variants, and render a preview. Templates and versions are stored in Postgres. Redis is used to cache hot templates and compiled outputs.
+- Rendering uses simple engines: Liquid and Handlebars for dynamic variables. MJML compilation is wired as a placeholder now and can be connected to a Node-based mjml CLI container when needed.
+- To send a message, the client calls the send endpoint with template id, variables, and recipient. The service validates variables, renders the content, and pushes a send request to Kafka for background delivery.
+- Background workers or downstream adapters read the Kafka send requests and deliver via provider adapters (email, SMS, push, WhatsApp). Each provider is plugged behind an adapter interface so we can choose MSG91/Netcore for email, Kaleyra for SMS/WhatsApp, and FCM for push. Delivery attempts and message status are tracked in Postgres.
+- Providers post webhooks (delivery, open, click, bounce). The webhook endpoint processes these callbacks, verifies them (signature checks can be added), and updates message status. It also emits events to the Analytics service for dashboards.
+- For bulk or campaign use-cases, a separate blast component handles audience, scheduling and pacing, then publishes per-recipient jobs to Kafka. The templates service focuses on render and channel delivery for each recipient and reports results.
+- Observability is via health and readiness endpoints and metrics. Security uses basic protection now and can be extended to JWT/api-key with tenant scoping and rate limits. Tests use Testcontainers for Postgres/Redis/Kafka to verify render, CRUD, send queueing, and webhook updates.

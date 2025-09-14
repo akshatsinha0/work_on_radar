@@ -1,0 +1,55 @@
+{
+  "info": {
+    "name": "POCM Templates Service",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {"raw": "http://localhost:8086/health", "protocol": "http", "host": ["localhost"], "port": "8086", "path": ["health"]}
+      }
+    },
+    {
+      "name": "Create Template",
+      "request": {
+        "method": "POST",
+        "header": [{"key":"Content-Type","value":"application/json"}],
+        "url": {"raw": "http://localhost:8086/templates", "protocol": "http", "host": ["localhost"], "port": "8086", "path": ["templates"]},
+        "body": {"mode":"raw","raw":"{\n  \"name\": \"Order Confirmation - Premium\",\n  \"type\": \"email\",\n  \"category\": \"transactional\",\n  \"language\": \"en-IN\",\n  \"status\": \"draft\",\n  \"tenantId\": \"demo\"\n}"}
+      }
+    },
+    {
+      "name": "Add Version",
+      "request": {
+        "method": "POST",
+        "header": [{"key":"Content-Type","value":"application/json"}],
+        "url": {"raw": "http://localhost:8086/templates/{{templateId}}/versions", "protocol": "http", "host": ["localhost"], "port": "8086", "path": ["templates","{{templateId}}","versions"]},
+        "body": {"mode":"raw","raw":"{\n  \"version\": 1,\n  \"subject\": \"Your order {{order_id}} is confirmed!\",\n  \"contentRaw\": \"<mjml><mj-body><mj-section><mj-column><mj-text><h2>Thanks {{customer_name}}</h2><p>Order {{order_id}} total ₹{{total_amount}}</p></mj-text></mj-column></mj-section></mj-body></mjml>\",\n  \"engine\": \"liquid\",\n  \"variablesSchema\": \"{\\\"required\\\":[\\\"customer_name\\\",\\\"order_id\\\",\\\"total_amount\\\"]}\",\n  \"isActive\": true\n}"}
+      }
+    },
+    {
+      "name": "Render Preview",
+      "request": {
+        "method": "POST",
+        "header": [{"key":"Content-Type","value":"application/json"}],
+        "url": {"raw": "http://localhost:8086/templates/{{templateId}}/render", "protocol": "http", "host": ["localhost"], "port": "8086", "path": ["templates","{{templateId}}","render"]},
+        "body": {"mode":"raw","raw":"{\n  \"engine\": \"liquid\",\n  \"content\": \"Hello {{customer_name}}, order {{order_id}} total ₹{{total_amount}}\",\n  \"variables\": {\n    \"customer_name\": \"Rajesh\",\n    \"order_id\": \"POCM-2025-001234\",\n    \"total_amount\": 2499\n  }\n}"}
+      }
+    },
+    {
+      "name": "Send (queued to Kafka when enabled)",
+      "request": {
+        "method": "POST",
+        "header": [{"key":"Content-Type","value":"application/json"}],
+        "url": {"raw": "http://localhost:8086/send/{{templateId}}", "protocol": "http", "host": ["localhost"], "port": "8086", "path": ["send","{{templateId}}"]},
+        "body": {"mode":"raw","raw":"{\n  \"channel\": \"email\",\n  \"version\": 1,\n  \"tenant_id\": \"demo\",\n  \"recipient\": {\n    \"email\": \"rajesh@example.com\",\n    \"name\": \"Rajesh\"\n  },\n  \"variables\": {\n    \"customer_name\": \"Rajesh\",\n    \"order_id\": \"POCM-2025-001234\",\n    \"total_amount\": 2499\n  }\n}"}
+      }
+    }
+  ],
+  "variable": [
+    {"key":"templateId","value":"REPLACE_ME"}
+  ]
+}

@@ -1,0 +1,38 @@
+version: "3.9"
+services:
+  templates-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: templates
+      POSTGRES_USER: templates
+      POSTGRES_PASSWORD: templates
+    ports:
+      - "5433:5432"
+    volumes:
+      - tmpl_pgdata:/var/lib/postgresql/data
+  templates-redis:
+    image: redis:7
+    ports:
+      - "6380:6379"
+  templates-app:
+    build: .
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_R2DBC_URL: r2dbc:postgresql://templates-db:5432/templates
+      SPRING_R2DBC_USERNAME: templates
+      SPRING_R2DBC_PASSWORD: templates
+      SPRING_FLYWAY_URL: jdbc:postgresql://templates-db:5432/templates
+      SPRING_FLYWAY_USER: templates
+      SPRING_FLYWAY_PASSWORD: templates
+      SPRING_REDIS_HOST: templates-redis
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_KAFKA_LISTENER_AUTO_STARTUP: "false"
+      SPRING_KAFKA_ADMIN_AUTO_CREATE: "false"
+      SPRING_KAFKA_ADMIN_FAIL_FAST: "false"
+    ports:
+      - "8086:8086"
+    depends_on:
+      - templates-db
+      - templates-redis
+volumes:
+  tmpl_pgdata:
