@@ -1,0 +1,57 @@
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor/IDE
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+.out/
+.project
+.classpath
+.settings/
+.factorypath
+
+# Node (if present)
+node_modules/
+
+# Python virtual envs (if present)
+.venv/
+venv/
+
+# Maven/Java build outputs
+**/target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Logs
+*.log
+*.out
+logs/
+
+# Coverage/misc
+coverage/
+*.lcov
+*.tmp
+*.bak
+*~
+
+# Local env files
+.env
+.env.*
+
+# Docker local overrides
+**/docker-compose.override.yml
+
+# Local data volumes (if created inside repo by mistake)
+pgdata/
+tmpl_pgdata/
+chdata/
+
+# Scripts you don't want to commit
+GitCleanupCommands.ps1
