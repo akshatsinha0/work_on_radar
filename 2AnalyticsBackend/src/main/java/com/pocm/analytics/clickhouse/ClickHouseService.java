@@ -25,7 +25,7 @@ public class ClickHouseService {
                              @Value("${clickhouse.password:}") String pass){
         this.url=url;this.user=user;this.pass=pass;
     }
-
+//
     public boolean isEnabled(){
         return url!=null && !url.isBlank();
     }
