@@ -14,5 +14,5 @@ Analytics (build image → start stack → logs → DB checks → unit + integra
 pwsh -NoProfile -Command ". .\8CommandCenter\analytics.ps1; Demo-Analytics"
 ```
 /*
-Docker desktop engine should be running, assumed
+Docker desktop engine should be running, assumed; & dockerized mvn.....
 */
