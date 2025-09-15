@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   templates-db:
     image: postgres:16
