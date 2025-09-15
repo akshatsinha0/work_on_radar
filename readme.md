@@ -1,6 +1,6 @@
 # Run demos (PowerShell 7+)
 
-Run these commands from the repository root (the folder that contains `8CommandCenter`).
+Run these commands from the repository root (the folder that contains for example `8CommandCenter`).
 
 Templates (build → start → logs → health → rebuild+smoke):
 
