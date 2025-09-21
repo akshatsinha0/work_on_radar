@@ -12,6 +12,14 @@ $RepoRoot=Split-Path -Path $PSScriptRoot -Parent
 $TemplatesRoot=Join-Path $RepoRoot "3TemplatesBackend"
 $TemplatesCompose=Join-Path $TemplatesRoot "docker-compose.yml"
 $SmokeScript=Join-Path $TemplatesRoot "scripts\smoke.ps1"
+# project name
+if ($env:COMPOSE_PROJECT_NAME -and -not [string]::IsNullOrWhiteSpace($env:COMPOSE_PROJECT_NAME)) {
+  $ComposeProjectName = $env:COMPOSE_PROJECT_NAME
+} else {
+  $ComposeProjectName = Split-Path -Leaf $TemplatesRoot
+}
+$ComposeProjectName = $ComposeProjectName.ToLowerInvariant()
+$ComposeNetwork = "${ComposeProjectName}_default"
 
 function Build-Templates{
 <#
@@ -30,8 +38,8 @@ function Start-Templates{
 .EXPECTEDOUTPUT Services show Up/healthy; repeat shows is up-to-date.
 #>
 Write-Host "Start Template stack and show status..."
-docker compose -f "$TemplatesCompose" up -d
-docker compose -f "$TemplatesCompose" ps
+docker compose -p "$ComposeProjectName" -f "$TemplatesCompose" --project-directory "$TemplatesRoot" up -d
+docker compose -p "$ComposeProjectName" -f "$TemplatesCompose" --project-directory "$TemplatesRoot" ps
 }
 
 function Get-TemplatesLogs{
@@ -41,7 +49,7 @@ function Get-TemplatesLogs{
 .EXPECTEDOUTPUT Spring Boot startup; "Started ..."; listening on 8086.
 #>
 Write-Host "Tail last 200 logs for templates-app..."
-docker compose -f "$TemplatesCompose" logs templates-app --tail=200 --no-log-prefix
+docker compose -p "$ComposeProjectName" -f "$TemplatesCompose" --project-directory "$TemplatesRoot" logs templates-app --tail=200 --no-log-prefix
 }
 
 function Test-TemplatesHealth{
@@ -62,7 +70,7 @@ function Up-Templates{
 .EXPECTEDOUTPUT Up-to-date on repeats.
 #>
 Write-Host "Compose up (idempotent)..."
-docker compose -f "$TemplatesCompose" up -d
+docker compose -p "$ComposeProjectName" -f "$TemplatesCompose" --project-directory "$TemplatesRoot" up -d
 }
 
 function RebuildAndSmoke-Templates{
@@ -72,7 +80,7 @@ function RebuildAndSmoke-Templates{
 .EXPECTEDOUTPUT Build ok, services Up, smoke script success.
 #>
 Write-Host "Rebuild images and run smoke tests..."
-docker compose -f "$TemplatesCompose" up -d --build
+docker compose -p "$ComposeProjectName" -f "$TemplatesCompose" --project-directory "$TemplatesRoot" up -d --build
 & "$SmokeScript"
 }
 

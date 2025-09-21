@@ -11,7 +11,15 @@ PowerShell 7+, Docker Desktop.
 $RepoRoot = Split-Path -Path $PSScriptRoot -Parent
 $AnalyticsRoot = Join-Path $RepoRoot "2AnalyticsBackend"
 $AnalyticsCompose = Join-Path $AnalyticsRoot "docker-compose.yml"
-$ComposeProjectName = "analyticsbackend"
+# oroject name
+if ($env:COMPOSE_PROJECT_NAME -and -not [string]::IsNullOrWhiteSpace($env:COMPOSE_PROJECT_NAME)) {
+    $ComposeProjectName = $env:COMPOSE_PROJECT_NAME
+} else {
+    $ComposeProjectName = Split-Path -Leaf $AnalyticsRoot
+}
+$ComposeProjectName = $ComposeProjectName.ToLowerInvariant()
+# Default network name used by compose
+$ComposeNetwork = "${ComposeProjectName}_default"
 
 function Start-AnalyticsStack {
     <#
@@ -62,7 +70,7 @@ function Get-AnalyticsDbTables {
 .EXPECTEDOUTPUT Table list.
 #>
     Write-Host "DB tables (\\dt)..."
-    docker exec -i analyticsbackend-postgres-1 psql -U analytics -d analytics -c "\dt"
+    docker compose -p "$ComposeProjectName" -f "$AnalyticsCompose" --project-directory "$AnalyticsRoot" exec -T postgres psql -U analytics -d analytics -c "\dt"
 }
 
 function Describe-AnalyticsTable {
@@ -74,7 +82,7 @@ function Describe-AnalyticsTable {
 #>
     param([Parameter(Mandatory = $true)][string]$Name)
     Write-Host "Describe table $Name..."
-    docker exec -i analyticsbackend-postgres-1 psql -U analytics -d analytics -c "\d+ $Name"
+    docker compose -p "$ComposeProjectName" -f "$AnalyticsCompose" --project-directory "$AnalyticsRoot" exec -T postgres psql -U analytics -d analytics -c "\d+ $Name"
 }
 
 function Test-AnalyticsUnit {
@@ -94,7 +102,7 @@ function Test-AnalyticsIntegration {
 .EXPECTEDOUTPUT Tests connect via service DNS; "[INFO] BUILD SUCCESS" if pass.
 #>
     Write-Host "Run integration tests on compose network..."
-docker run --rm --name maven-tests --network analyticsbackend_default -v "/var/run/docker.sock:/var/run/docker.sock" -v "${AnalyticsRoot}:/workspace" -w /workspace -e SPRING_PROFILES_ACTIVE=dev -e SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092 -e SPRING_REDIS_HOST=redis -e SPRING_R2DBC_URL="r2dbc:postgresql://postgres:5432/analytics" -e SPRING_R2DBC_USERNAME=analytics -e SPRING_R2DBC_PASSWORD=analytics -e SPRING_DATASOURCE_URL="jdbc:postgresql://postgres:5432/analytics" -e SPRING_DATASOURCE_USERNAME=analytics -e SPRING_DATASOURCE_PASSWORD=analytics -e SPRING_FLYWAY_URL="jdbc:postgresql://postgres:5432/analytics" -e SPRING_FLYWAY_USER=analytics -e SPRING_FLYWAY_PASSWORD=analytics -e CLICKHOUSE_URL="jdbc:clickhouse://clickhouse:8123/analytics" -e CLICKHOUSE_USERNAME=default -e CLICKHOUSE_PASSWORD= -e KAFKA_TOPIC_PREFIX="pocm.analytics" maven:3.9-eclipse-temurin-17 mvn -q test
+docker run --rm --name maven-tests --network $ComposeNetwork -v "/var/run/docker.sock:/var/run/docker.sock" -v "${AnalyticsRoot}:/workspace" -w /workspace -e SPRING_PROFILES_ACTIVE=dev -e SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092 -e SPRING_REDIS_HOST=redis -e SPRING_R2DBC_URL="r2dbc:postgresql://postgres:5432/analytics" -e SPRING_R2DBC_USERNAME=analytics -e SPRING_R2DBC_PASSWORD=analytics -e SPRING_DATASOURCE_URL="jdbc:postgresql://postgres:5432/analytics" -e SPRING_DATASOURCE_USERNAME=analytics -e SPRING_DATASOURCE_PASSWORD=analytics -e SPRING_FLYWAY_URL="jdbc:postgresql://postgres:5432/analytics" -e SPRING_FLYWAY_USER=analytics -e SPRING_FLYWAY_PASSWORD=analytics -e CLICKHOUSE_URL="jdbc:clickhouse://clickhouse:8123/analytics" -e CLICKHOUSE_USERNAME=default -e CLICKHOUSE_PASSWORD= -e KAFKA_TOPIC_PREFIX="pocm.analytics" maven:3.9-eclipse-temurin-17 mvn -q test
 }
 
 function Demo-Analytics{
