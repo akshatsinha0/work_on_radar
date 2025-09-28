@@ -129,4 +129,4 @@ Send-Event "recall" @{ batch_number="BATCH_20250810_MUM"; reason="packaging_issu
 Send-Event "recall" @{ batch_number="BATCH_20250808_DEL"; reason="contamination"; severity="high" }
 
 Write-Host "Seeding complete - added 70+ events across all categories" -ForegroundColor Green
-Write-Host "Query the database to verify: docker exec -i analyticsbackend-postgres-1 psql -U analytics -d analytics -c 'select type,count(*) from events group by 1 order by 2 desc;'" -ForegroundColor Yellow
+Write-Host "Query the database to verify: docker exec -i 2analyticsbackend-postgres-1 psql -U analytics -d analytics -c 'select type,count(*) from events group by 1 order by 2 desc;'" -ForegroundColor Yellow
